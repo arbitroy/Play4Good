@@ -32,7 +32,7 @@ Play4Good is an innovative platform that gamifies charitable giving and social i
 ### Installation
 
 1. Clone the repository
-- git clone https://github.com/yourusername/play4good.git
+- git clone [https://github.com/yourusername/play4good.git](https://github.com/arbitroy/Play4Good.git)
 - cd play4good
 
 3. Install frontend dependencies
