@@ -181,8 +181,6 @@ func (server *Server) createTeam(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, team)
 }
 
-// Implement getTeam, updateTeam, deleteTeam similarly to the user controllers
-
 func (server *Server) getTeam (ctx *gin.Context) {
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
