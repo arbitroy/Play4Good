@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -11,48 +12,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Server struct {
-    db   *db.Queries
-    router *gin.Engine
+type Play4GoodController struct {
+    db  *db.Queries
+    ctx context.Context
 }
 
-func NewServer(db  *db.Queries) *Server {
-    server := &Server{db : db }
-    router := gin.Default()
-
-    // User routes
-    router.POST("/users", server.createUser)
-    router.GET("/users/:id", server.getUser)
-    router.PUT("/users/:id", server.updateUser)
-    router.DELETE("/users/:id", server.deleteUser)
-
-    // Team routes
-    router.POST("/teams", server.createTeam)
-    router.GET("/teams/:id", server.getTeam)
-    router.PUT("/teams/:id", server.updateTeam)
-    router.DELETE("/teams/:id", server.deleteTeam)
-
-    // Cause routes
-    router.POST("/causes", server.createCause)
-    router.GET("/causes/:id", server.getCause)
-    router.PUT("/causes/:id", server.updateCause)
-    router.DELETE("/causes/:id", server.deleteCause)
-
-    // Donation routes
-    router.POST("/donations", server.createDonation)
-    router.GET("/donations/:id", server.getDonation)
-
-    // Leaderboard routes
-    router.POST("/leaderboards", server.createLeaderboard)
-    router.GET("/leaderboards/:id", server.getLeaderboard)
-    router.PUT("/leaderboards/:id/entries", server.updateLeaderboardEntry)
-
-    server.router = router
-    return server
-}
-
-func (server *Server) Start(address string) error {
-    return server.router.Run(address)
+func NewPlay4GoodController(db *db.Queries, ctx context.Context) *Play4GoodController {
+    return &Play4GoodController{db, ctx}
 }
 
 func errorResponse(err error) gin.H {
@@ -60,7 +26,7 @@ func errorResponse(err error) gin.H {
 }
 
 // User Controllers
-func (server *Server) createUser(ctx *gin.Context) {
+func (c *Play4GoodController) CreateUser(ctx *gin.Context) {
     var payload *schemas.UserCreateRequest;
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -76,7 +42,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		AvatarUrl:    sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
 	}
 
-    user, err := server.db .CreateUser(ctx, arg)
+    user, err := c.db .CreateUser(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -85,7 +51,7 @@ func (server *Server) createUser(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, user)
 }
 
-func (server *Server) getUser(ctx *gin.Context) {
+func (c *Play4GoodController) GetUser(ctx *gin.Context) {
     id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -94,7 +60,7 @@ func (server *Server) getUser(ctx *gin.Context) {
 
 	id := int32(id64)
 
-    user, err := server.db.GetUser(ctx, id)
+    user, err := c.db.GetUser(ctx, id)
     if err != nil {
         if err == sql.ErrNoRows {
             ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -107,7 +73,7 @@ func (server *Server) getUser(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, user)
 }
 
-func (server *Server) updateUser(ctx *gin.Context) {
+func (c *Play4GoodController) UpdateUser(ctx *gin.Context) {
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
     if err != nil {
@@ -131,7 +97,7 @@ func (server *Server) updateUser(ctx *gin.Context) {
         AvatarUrl: sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
     }
 
-    user, err := server.db .UpdateUser(ctx, arg)
+    user, err := c.db .UpdateUser(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -140,7 +106,7 @@ func (server *Server) updateUser(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, user)
 }
 
-func (server *Server) deleteUser(ctx *gin.Context) {
+func (c *Play4GoodController) DeleteUser(ctx *gin.Context) {
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -149,7 +115,7 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 
 	id := int32(id64)
 
-    err = server.db.DeleteUser(ctx, id)
+    err = c.db.DeleteUser(ctx, id)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -159,7 +125,7 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 }
 
 // Team Controllers
-func (server *Server) createTeam(ctx *gin.Context) {
+func (c *Play4GoodController) CreateTeam(ctx *gin.Context) {
     var payload *schemas.TeamCreateRequest
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -172,7 +138,7 @@ func (server *Server) createTeam(ctx *gin.Context) {
         AvatarUrl:   sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
     }
 
-    team, err := server.db.CreateTeam(ctx, arg)
+    team, err := c.db.CreateTeam(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -181,14 +147,14 @@ func (server *Server) createTeam(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, team)
 }
 
-func (server *Server) getTeam (ctx *gin.Context) {
+func (c *Play4GoodController) GetTeam (ctx *gin.Context) {
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
         return
     }
 	id := int32(id64)
-    team, err := server.db.GetTeam(ctx, id)
+    team, err := c.db.GetTeam(ctx, id)
     if err != nil {
         if err == sql.ErrNoRows {
             ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -200,7 +166,7 @@ func (server *Server) getTeam (ctx *gin.Context) {
     ctx.JSON(http.StatusOK, team)
 }
 
-func (server *Server) updateTeam (ctx *gin.Context) {
+func (c *Play4GoodController) UpdateTeam (ctx *gin.Context) {
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
     if err != nil {
@@ -223,7 +189,7 @@ func (server *Server) updateTeam (ctx *gin.Context) {
 	}
         
 
-    team, err := server.db.UpdateTeam(ctx, arg)
+    team, err := c.db.UpdateTeam(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -232,7 +198,7 @@ func (server *Server) updateTeam (ctx *gin.Context) {
     ctx.JSON(http.StatusOK, team)
 }
 
-func (server *Server) deleteTeam (ctx *gin.Context){
+func (c *Play4GoodController) DeleteTeam (ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -241,7 +207,7 @@ func (server *Server) deleteTeam (ctx *gin.Context){
 
 	id := int32(id64)
 
-    err = server.db.DeleteTeam(ctx, id)
+    err = c.db.DeleteTeam(ctx, id)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -252,7 +218,7 @@ func (server *Server) deleteTeam (ctx *gin.Context){
 
 
 // Cause Controllers
-func (server *Server) createCause(ctx *gin.Context) {
+func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
     var payload *schemas.CauseCreateRequest
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -277,7 +243,7 @@ func (server *Server) createCause(ctx *gin.Context) {
         Status:     sql.NullString{String: payload.Status, Valid: payload.Status != ""},
     }
 
-    cause, err := server.db .CreateCause(ctx, arg)
+    cause, err := c.db .CreateCause(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -286,14 +252,14 @@ func (server *Server) createCause(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, cause)
 }
 
-func (server *Server) getCause(ctx *gin.Context){
+func (c *Play4GoodController) GetCause(ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
         return
     }
 	id := int32(id64)
-    cause, err := server.db.GetCause(ctx, id)
+    cause, err := c.db.GetCause(ctx, id)
     if err != nil {
         if err == sql.ErrNoRows {
             ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -304,7 +270,7 @@ func (server *Server) getCause(ctx *gin.Context){
     }
     ctx.JSON(http.StatusOK, cause)
 }
-func (server *Server) updateCause(ctx *gin.Context){
+func (c *Play4GoodController) UpdateCause(ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
     if err != nil {
@@ -339,7 +305,7 @@ func (server *Server) updateCause(ctx *gin.Context){
 	}
         
 
-    cause, err := server.db.UpdateCause(ctx, arg)
+    cause, err := c.db.UpdateCause(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -347,7 +313,7 @@ func (server *Server) updateCause(ctx *gin.Context){
 
     ctx.JSON(http.StatusOK, cause)
 }
-func (server *Server) deleteCause(ctx *gin.Context){
+func (c *Play4GoodController) DeleteCause(ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -356,7 +322,7 @@ func (server *Server) deleteCause(ctx *gin.Context){
 
 	id := int32(id64)
 
-    err = server.db.DeleteCause(ctx, id)
+    err = c.db.DeleteCause(ctx, id)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -366,7 +332,7 @@ func (server *Server) deleteCause(ctx *gin.Context){
 }
 
 // Donation Controllers
-func (server *Server) createDonation(ctx *gin.Context) {
+func (c *Play4GoodController) CreateDonation(ctx *gin.Context) {
     var payload *schemas.DonationCreateRequest
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -393,7 +359,7 @@ func (server *Server) createDonation(ctx *gin.Context) {
         DonationType:  sql.NullString{String: payload.DonationType, Valid: payload.DonationType != ""},
     }
 
-    donation, err := server.db .CreateDonation(ctx, arg)
+    donation, err := c.db .CreateDonation(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -402,14 +368,14 @@ func (server *Server) createDonation(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, donation)
 }
 
-func (server *Server) getDonation(ctx *gin.Context){
+func (c *Play4GoodController) GetDonation(ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
         return
     }
 	id := int32(id64)
-    donation, err := server.db.GetDonation(ctx, id)
+    donation, err := c.db.GetDonation(ctx, id)
     if err != nil {
         if err == sql.ErrNoRows {
             ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -422,7 +388,7 @@ func (server *Server) getDonation(ctx *gin.Context){
 }
 
 // Leaderboard Controllers
-func (server *Server) createLeaderboard(ctx *gin.Context) {
+func (c *Play4GoodController) CreateLeaderboard(ctx *gin.Context) {
     var payload *schemas.LeaderboardCreateRequest
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -442,7 +408,7 @@ func (server *Server) createLeaderboard(ctx *gin.Context) {
 		},
     }
 
-    leaderboard, err := server.db .CreateLeaderboard(ctx, arg)
+    leaderboard, err := c.db .CreateLeaderboard(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
@@ -451,14 +417,14 @@ func (server *Server) createLeaderboard(ctx *gin.Context) {
     ctx.JSON(http.StatusOK, leaderboard)
 }
 
-func (server *Server) getLeaderboard(ctx *gin.Context){
+func (c *Play4GoodController) GetLeaderboard(ctx *gin.Context){
     id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
     if err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
         return
     }
 	id := int32(id64)
-    leaderboard, err := server.db.GetLeaderboard(ctx, id)
+    leaderboard, err := c.db.GetLeaderboard(ctx, id)
     if err != nil {
         if err == sql.ErrNoRows {
             ctx.JSON(http.StatusNotFound, errorResponse(err))
@@ -470,7 +436,7 @@ func (server *Server) getLeaderboard(ctx *gin.Context){
     ctx.JSON(http.StatusOK, leaderboard)
 }
 
-func (server *Server) updateLeaderboardEntry(ctx *gin.Context) {
+func (c *Play4GoodController) UpdateLeaderboardEntry(ctx *gin.Context) {
     var payload *schemas.LeaderboardEntryUpdateRequest
     if err := ctx.ShouldBindJSON(&payload); err != nil {
         ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -487,7 +453,7 @@ func (server *Server) updateLeaderboardEntry(ctx *gin.Context) {
 		},
     }
 
-    entry, err := server.db .UpdateLeaderboardEntry(ctx, arg)
+    entry, err := c.db .UpdateLeaderboardEntry(ctx, arg)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, errorResponse(err))
         return
