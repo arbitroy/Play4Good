@@ -387,6 +387,92 @@ func (c *Play4GoodController) GetDonation(ctx *gin.Context){
     ctx.JSON(http.StatusOK, donation)
 }
 
+// AddUserToTeam adds a user to a team
+func (c *Play4GoodController) AddUserToTeam(ctx *gin.Context) {
+    var payload *schemas.UserTeamCreateRequest
+    if err := ctx.ShouldBindJSON(&payload); err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    arg := db.AddUserToTeamParams{
+        UserID: int32(payload.UserID),
+        TeamID: int32(payload.TeamID),
+        Role:   payload.Role,
+    }
+
+    userTeam, err := c.db.AddUserToTeam(ctx, arg)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+        return
+    }
+
+    ctx.JSON(http.StatusOK, userTeam)
+}
+
+// UpdateUserTeamRole updates a user's role in a team
+func (c *Play4GoodController) UpdateUserTeamRole(ctx *gin.Context) {
+    userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    var payload *schemas.UserTeamUpdateRequest
+    if err := ctx.ShouldBindJSON(&payload); err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    arg := db.UpdateUserTeamRoleParams{
+        UserID: int32(userID),
+        TeamID: int32(teamID),
+        Role:   payload.Role,
+    }
+
+    userTeam, err := c.db.UpdateUserTeamRole(ctx, arg)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+        return
+    }
+
+    ctx.JSON(http.StatusOK, userTeam)
+}
+
+// RemoveUserFromTeam removes a user from a team
+func (c *Play4GoodController) RemoveUserFromTeam(ctx *gin.Context) {
+    userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
+    if err != nil {
+        ctx.JSON(http.StatusBadRequest, errorResponse(err))
+        return
+    }
+
+    arg := db.RemoveUserFromTeamParams{
+        UserID: int32(userID),
+        TeamID: int32(teamID),
+    }
+
+    err = c.db.RemoveUserFromTeam(ctx, arg)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+        return
+    }
+
+    ctx.JSON(http.StatusOK, gin.H{"message": "User removed from team successfully"})
+}
+
 // Leaderboard Controllers
 func (c *Play4GoodController) CreateLeaderboard(ctx *gin.Context) {
     var payload *schemas.LeaderboardCreateRequest

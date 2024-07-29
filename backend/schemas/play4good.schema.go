@@ -41,7 +41,7 @@ type CauseCreateRequest struct {
     Name        string     `json:"name" binding:"required,min=3,max=100"`
     Description string     `json:"description"`
     Goal        float64    `json:"goal" binding:"required,min=0"`
-    StartDate   time.Time  `json:"start_date" binding:"required"`
+    StartDate   time.Time `json:"start_date" binding:"required"`
     EndDate     time.Time  `json:"end_date" binding:"required,gtfield=StartDate"`
     Status      string     `json:"status" binding:"required,oneof=active inactive completed"`
 }
@@ -79,4 +79,16 @@ type LeaderboardEntryUpdateRequest struct {
     UserID        int64   `json:"user_id"`
     TeamID        int64   `json:"team_id"`
     Score         float64 `json:"score" binding:"required,min=0"`
+}
+
+// UserTeamCreateRequest represents the request body for adding a user to a team
+type UserTeamCreateRequest struct {
+    UserID int64  `json:"user_id" binding:"required"`
+    TeamID int64  `json:"team_id" binding:"required"`
+    Role   string `json:"role" binding:"required,oneof=member admin"`
+}
+
+// UserTeamUpdateRequest represents the request body for updating a user's role in a team
+type UserTeamUpdateRequest struct {
+    Role string `json:"role" binding:"required,oneof=member admin"`
 }

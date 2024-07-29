@@ -41,4 +41,8 @@ func (pr *Play4GoodRoutes) SetupRoutes(rg *gin.RouterGroup) {
 	router.POST("/leaderboards", pr.play4goodController.CreateLeaderboard)
 	router.GET("/leaderboards/:id", pr.play4goodController.GetLeaderboard)
 	router.PUT("/leaderboards/:id/entries", pr.play4goodController.UpdateLeaderboardEntry)
+
+	router.POST("/user-team", pr.play4goodController.AddUserToTeam)
+    router.PUT("/user-team/:userId/:teamId", pr.play4goodController.UpdateUserTeamRole)
+    router.DELETE("/user-team/:userId/:teamId", pr.play4goodController.RemoveUserFromTeam)
 }

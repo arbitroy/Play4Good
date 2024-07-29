@@ -51,6 +51,12 @@ INSERT INTO user_team (user_id, team_id, role)
 VALUES ($1, $2, $3)
 RETURNING *;
 
+-- name: UpdateUserTeamRole :one
+UPDATE user_team
+SET role = $3
+WHERE user_id = $1 AND team_id = $2
+RETURNING *;
+
 -- name: RemoveUserFromTeam :exec
 DELETE FROM user_team
 WHERE user_id = $1 AND team_id = $2;

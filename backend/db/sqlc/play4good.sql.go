@@ -786,3 +786,23 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	)
 	return i, err
 }
+
+const updateUserTeamRole = `-- name: UpdateUserTeamRole :one
+UPDATE user_team
+SET role = $3
+WHERE user_id = $1 AND team_id = $2
+RETURNING user_id, team_id, role
+`
+
+type UpdateUserTeamRoleParams struct {
+	UserID int32  `json:"user_id"`
+	TeamID int32  `json:"team_id"`
+	Role   string `json:"role"`
+}
+
+func (q *Queries) UpdateUserTeamRole(ctx context.Context, arg UpdateUserTeamRoleParams) (UserTeam, error) {
+	row := q.queryRow(ctx, q.updateUserTeamRoleStmt, updateUserTeamRole, arg.UserID, arg.TeamID, arg.Role)
+	var i UserTeam
+	err := row.Scan(&i.UserID, &i.TeamID, &i.Role)
+	return i, err
+}
