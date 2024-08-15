@@ -23,6 +23,8 @@ export const GlobalStyle = createGlobalStyle`
     line-height: 1.5;
     color: #333333;
     background-color: #ffffff;
+    background-color: #03011f;
+    font-family: "Montserrat", sans-serif;
   }
 
   /* Typography */
@@ -51,6 +53,7 @@ export const GlobalStyle = createGlobalStyle`
       color: #2980b9;
     }
   }
+
 
   /* Button styles */
   .button {
