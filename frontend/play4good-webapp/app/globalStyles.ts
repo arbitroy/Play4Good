@@ -3,8 +3,6 @@
 import { createGlobalStyle } from 'styled-components'
 
 export const GlobalStyle = createGlobalStyle`
- @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
-
   /* Reset and base styles */
   *, *::before, *::after {
     box-sizing: border-box;
@@ -21,7 +19,7 @@ export const GlobalStyle = createGlobalStyle`
 
   body {
     line-height: 1.5;
-    color: #333333;
+    color: #FFFFFF;
     background-color: #ffffff;
     background-color: #03011f;
     font-family: "Montserrat", sans-serif;
@@ -33,7 +31,8 @@ export const GlobalStyle = createGlobalStyle`
     line-height: 1.2;
   }
 
-  h1 { font-size: 2.5rem; }
+  h1 { font-size: 2.5rem;
+  }
   h2 { font-size: 2rem; }
   h3 { font-size: 1.75rem; }
   h4 { font-size: 1.5rem; }

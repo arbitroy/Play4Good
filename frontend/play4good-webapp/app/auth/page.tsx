@@ -209,7 +209,7 @@ const SocialIcon = styled.a`
   }
 `;
 
-const AuthForm: React.FC = () => {
+const Page: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
 
   const toggleForm = () => {
@@ -267,4 +267,4 @@ const AuthForm: React.FC = () => {
   );
 };
 
-export default AuthForm;
+export default Page;

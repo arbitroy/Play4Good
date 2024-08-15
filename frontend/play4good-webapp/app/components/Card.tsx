@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Button from './Button';
+import Image from 'next/image';
+
 
 
 interface CardProps {
@@ -176,7 +178,7 @@ const Card: React.FC<CardProps> = ({ title, image, content }) => {
             <button onClick={() => setIsModalOpen(false)}>Close</button>
           </ModalHeader>
           <ModalBody>
-            <img src={image} alt={title} />
+            <Image src={image} alt={title} />
             {content}
           </ModalBody>
           <ModalFooter>
