@@ -82,8 +82,8 @@ const AuthFormContainer = styled.div`
   }
 
   .social-media {
-    height: 40px;
-    margin: 20px 0;
+    height: 20px;
+    margin: 0px 0px 20px;
   }
 
   span {
@@ -210,7 +210,21 @@ const SocialIcon = styled.a`
 `;
 
 const Page: React.FC = () => {
+  const [state, setState] = useState({
+    fname: "",
+    lname: "",
+    email: "",
+    password: ""
+  })
+
+  const handleChange = (e: { target: { name: any; value: any; }; }) => {
+    setState({
+      ...state,
+      [e.target.name]: e.target.value,
+    })
+  }
   const [isSignUp, setIsSignUp] = useState(false);
+  
 
   const toggleForm = () => {
     setIsSignUp(!isSignUp);
@@ -220,22 +234,23 @@ const Page: React.FC = () => {
     <AuthFormContainer className={isSignUp ? 'right-panel-active' : ''}>
       <div className="form-container sign-up-container">
         <form action="#">
-          <h1>Create Account</h1>
+          <h1 >Create Account</h1>
           <div className="social-media">
             <SocialIcon href="#" className="social">
               <i className="fab fa-google"></i>
             </SocialIcon>
           </div>
-          <span>or sign up using your email account</span>
-          <input type="text" placeholder="Name" required />
-          <input type="email" placeholder="Email" required />
-          <input type="password" placeholder="Password" required />
+          <span >or sign up using your email account</span>
+          <input type="text" placeholder="First Name"  value={state.fname} onChange={handleChange} required />
+          <input type="text" placeholder="Last Name" value={state.lname} onChange={handleChange} required />
+          <input type="email" placeholder="Email" value={state.email} onChange={handleChange} required />
+          <input type="password" placeholder="Password" value={state.password} onChange={handleChange} required />
           <button>Sign Up</button>
         </form>
       </div>
       <div className="form-container log-in-container">
         <form action="#">
-          <h1>Log In</h1>
+          <h1 >Log In</h1>
           <div className="social-media">
             <SocialIcon href="#" className="social">
               <i className="fa-brands fa-google"></i>
@@ -243,8 +258,8 @@ const Page: React.FC = () => {
 
           </div>
           <span>or sign up using your email account</span>
-          <input type="email" placeholder="Email" required />
-          <input type="password" placeholder="Password" required />
+          <input type="email" placeholder="Email" value={state.email} onChange={handleChange} required />
+          <input type="password" placeholder="Password" value={state.password} onChange={handleChange} required />
           <a href="#">Forgot your password?</a>
           <button>Sign In</button>
         </form>
@@ -252,8 +267,8 @@ const Page: React.FC = () => {
       <div className="overlay-container">
         <div className="overlay">
           <div className="overlay-panel left">
-            <h1>Welcome Back!</h1>
-            <p>To keep connected with us please login with your personal info</p>
+            <h1 >Welcome Back!</h1>
+            <p >To keep connected with us please login with your personal info</p>
             <button className="ghost" onClick={toggleForm}>Log In</button>
           </div>
           <div className="overlay-panel right">

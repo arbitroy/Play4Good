@@ -19,7 +19,7 @@ export const GlobalStyle = createGlobalStyle`
 
   body {
     line-height: 1.5;
-    color: #FFFFFF;
+    color: #3E3F3E;
     background-color: #ffffff;
     background-color: #03011f;
     font-family: "Montserrat", sans-serif;
@@ -27,7 +27,6 @@ export const GlobalStyle = createGlobalStyle`
 
   /* Typography */
   h1, h2, h3, h4, h5, h6 {
-    margin-bottom: 0.5em;
     line-height: 1.2;
   }
 
