@@ -1,251 +1,146 @@
 'use client'
 
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import * as bcrypt from 'bcryptjs';
+import { AuthFormContainer } from '../components/AuthFormContainer';
+import { SocialIcon } from '../components/SocialIcon';
 
-const AuthFormContainer = styled.div`
-  position: relative;
-  width: 766px;
-  max-width: 100%;
-  min-height: 480px;
-  background-color: white;
-  margin: 100px auto;
-  border-radius: 10px;
-  overflow: hidden;
-
-  a {
-    text-decoration: none;
-    margin: 20px auto;
-    color: inherit;
-    font-size: 12px;
-  }
-
-  p {
-    font-size: 14px;
-    font-weight: 100;
-    line-height: 1.4;
-    margin: 20px;
-  }
-
-  .social-media a {
-    border: 1px solid #ddd;
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 5px;
-    height: 40px;
-    width: 40px;
-
-    &:hover {
-      background-color: lightGray;
-    }
-  }
-
-  button {
-    padding: 12px 45px;
-    border-radius: 20px;
-    font-family: inherit;
-    background-color: #f736ce;
-    border: none;
-    color: white;
-    outline: none;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-
-    &:hover {
-      transform: scale(0.97);
-    }
-
-    &.ghost {
-      background: transparent;
-      border: 1px solid #fff;
-      color: #fff;
-    }
-  }
-
-  .form-container {
-    height: 100%;
-    position: absolute;
-    top: 0;
-    transition: all 0.6s ease-in-out;
-
-    form {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 0 50px;
-      margin-top: 20px;
-    }
-  }
-
-  .social-media {
-    height: 20px;
-    margin: 0px 0px 20px;
-  }
-
-  span {
-    font-size: 12px;
-  }
-
-  .form-container input {
-    margin: 8px auto;
-    width: 100%;
-    padding: 12px 15px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-  }
-
-  .log-in-container,
-  .sign-up-container {
-    width: 50%;
-    left: 0;
-    height: 100%;
-  }
-
-  .sign-up-container {
-    opacity: 0;
-    z-index: 1;
-  }
-
-  .log-in-container {
-    z-index: 2;
-  }
-
-  .overlay-container {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 50%;
-    height: 100%;
-    overflow: hidden;
-    transition: transform 0.6s ease-in-out;
-    z-index: 100;
-  }
-
-  .overlay {
-    background-image: linear-gradient(to right, #f736ce, #df22a5, #c41280, #a70860, #890544);
-    width: 200%;
-    height: 100%;
-    position: relative;
-    left: -100%;
-    transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
-  }
-
-  .overlay-panel {
-    position: absolute;
-    top: 0;
-    color: #f5f5f5;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 0 40px;
-    height: 100%;
-    width: 50%;
-    text-align: center;
-    transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
-  }
-
-  .overlay-panel.right {
-    right: 0;
-    transform: translateX(0);
-  }
-
-  .overlay-panel.left {
-    transform: translateX(-20%);
-  }
-
-  &.right-panel-active {
-    .log-in-container {
-      transform: translateY(100%);
-    }
-
-    .sign-up-container {
-      transform: translateX(100%);
-      opacity: 1;
-      z-index: 5;
-    }
-
-    .overlay-container {
-      transform: translateX(-100%);
-    }
-
-    .overlay {
-      transform: translateX(50%);
-    }
-
-    .overlay-panel.left {
-      transform: translateX(0);
-    }
-
-    .overlay-panel.right {
-      transform: translateX(20%);
-    }
-  }
-`;
-
-
-
-const SocialIcon = styled.a`
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 5px;
-  height: 40px;
-  width: 40px;
-  color: #333;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: #eee;
-    transform: translateY(-2px);
-  }
-`;
 
 const Page: React.FC = () => {
-  const [state, setState] = useState({
-    fname: "",
-    lname: "",
+  const [formData, setState] = useState({
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: ""
   })
 
   const handleChange = (e: { target: { name: any; value: any; }; }) => {
     setState({
-      ...state,
+      ...formData,
       [e.target.name]: e.target.value,
     })
   }
+
+  const getUserFromDB = async (email: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/users/email/${email}`);
+      if (!response.ok) {
+        throw new Error('User not found or some other error');
+      }
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  const handleLogin = async (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+
+    try {
+      // Retrieve the user data from the database by email
+      const user = await getUserFromDB(formData.email);
+
+      if (!user) {
+        console.error("User not found");
+        return;
+      }
+
+      // Assuming user.password contains the hashed password stored in your database
+      const storedHashedPassword = user.password_hash;
+
+      // Use bcrypt or a similar library to compare the hashed password
+      const isPasswordValid = await bcrypt.compare(formData.password, storedHashedPassword);
+
+      if (isPasswordValid) {
+        console.log("Login successful!");
+        // Proceed with the login process (e.g., setting a session, redirecting)
+        setState({
+          username: "",
+          first_name: "",
+          last_name: "",
+          email: "",
+          password: ""
+        })
+      } else {
+        console.error("Invalid password");
+      }
+    } catch (error) {
+      console.error("An error occurred during login:", error);
+    }
+  }
+
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+    //hash password
+    const salt = await bcrypt.genSalt(10);
+    const passHashed = await bcrypt.hash(formData.password, salt);
+
+    // Create a new object with the hashed password
+    const updatedFormData = {
+      ...formData,
+      password: passHashed,
+    };
+
+    // Convert updatedFormData to JSON
+    const jsonData = JSON.stringify(updatedFormData);
+
+    try {
+      // Send the JSON data to your API
+      const response = await fetch('http://localhost:8000/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonData,
+      });
+
+      const result = await response.json();
+      console.log('Success:', result);
+      setState({
+        username: "",
+        first_name: "",
+        last_name: "",
+        email: "",
+        password: ""
+      })
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  }
+
   const [isSignUp, setIsSignUp] = useState(false);
-  
+
 
   const toggleForm = () => {
     setIsSignUp(!isSignUp);
+    setState({
+      username: "",
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: ""
+    })
   };
 
   return (
     <AuthFormContainer className={isSignUp ? 'right-panel-active' : ''}>
       <div className="form-container sign-up-container">
         <form action="#">
-          <h1 >Create Account</h1>
+          <h1 style={{ fontSize: "1.5rem" }}>Create Account</h1>
           <div className="social-media">
             <SocialIcon href="#" className="social">
               <i className="fab fa-google"></i>
             </SocialIcon>
           </div>
           <span >or sign up using your email account</span>
-          <input type="text" placeholder="First Name"  value={state.fname} onChange={handleChange} required />
-          <input type="text" placeholder="Last Name" value={state.lname} onChange={handleChange} required />
-          <input type="email" placeholder="Email" value={state.email} onChange={handleChange} required />
-          <input type="password" placeholder="Password" value={state.password} onChange={handleChange} required />
-          <button>Sign Up</button>
+          <input type="text" placeholder="Username" name='username' value={formData.username} onChange={handleChange} required />
+          <input type="text" placeholder="First Name" name='first_name' value={formData.first_name} onChange={handleChange} required />
+          <input type="text" placeholder="Last Name" name='last_name' value={formData.last_name} onChange={handleChange} required />
+          <input type="email" placeholder="Email" name='email' value={formData.email} onChange={handleChange} required />
+          <input type="password" placeholder="Password" name='password' value={formData.password} onChange={handleChange} required />
+          <button onClick={handleSubmit}>Sign Up</button>
         </form>
       </div>
       <div className="form-container log-in-container">
@@ -258,10 +153,10 @@ const Page: React.FC = () => {
 
           </div>
           <span>or sign up using your email account</span>
-          <input type="email" placeholder="Email" value={state.email} onChange={handleChange} required />
-          <input type="password" placeholder="Password" value={state.password} onChange={handleChange} required />
+          <input type="email" placeholder="Email" name='email' value={formData.email} onChange={handleChange} required />
+          <input type="password" placeholder="Password" name='password' value={formData.password} onChange={handleChange} required />
           <a href="#">Forgot your password?</a>
-          <button>Sign In</button>
+          <button onClick={handleLogin}>Sign In</button>
         </form>
       </div>
       <div className="overlay-container">

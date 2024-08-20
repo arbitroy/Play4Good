@@ -69,6 +69,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserStmt, err = db.PrepareContext(ctx, getUser); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUser: %w", err)
 	}
+	if q.getUserByEmailStmt, err = db.PrepareContext(ctx, getUserByEmail); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserByEmail: %w", err)
+	}
 	if q.listCausesStmt, err = db.PrepareContext(ctx, listCauses); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCauses: %w", err)
 	}
@@ -185,6 +188,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUserStmt: %w", cerr)
 		}
 	}
+	if q.getUserByEmailStmt != nil {
+		if cerr := q.getUserByEmailStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserByEmailStmt: %w", cerr)
+		}
+	}
 	if q.listCausesStmt != nil {
 		if cerr := q.listCausesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listCausesStmt: %w", cerr)
@@ -299,6 +307,7 @@ type Queries struct {
 	getLeaderboardEntriesStmt  *sql.Stmt
 	getTeamStmt                *sql.Stmt
 	getUserStmt                *sql.Stmt
+	getUserByEmailStmt         *sql.Stmt
 	listCausesStmt             *sql.Stmt
 	listDonationsStmt          *sql.Stmt
 	listLeaderboardsStmt       *sql.Stmt
@@ -332,6 +341,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getLeaderboardEntriesStmt:  q.getLeaderboardEntriesStmt,
 		getTeamStmt:                q.getTeamStmt,
 		getUserStmt:                q.getUserStmt,
+		getUserByEmailStmt:         q.getUserByEmailStmt,
 		listCausesStmt:             q.listCausesStmt,
 		listDonationsStmt:          q.listDonationsStmt,
 		listLeaderboardsStmt:       q.listLeaderboardsStmt,
