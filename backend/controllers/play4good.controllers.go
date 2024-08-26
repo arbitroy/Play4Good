@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	db "play4good-backend/db/sqlc"
@@ -72,6 +73,28 @@ func (c *Play4GoodController) GetUser(ctx *gin.Context) {
 
     ctx.JSON(http.StatusOK, user)
 }
+
+func (c *Play4GoodController) GetUserByEmail(ctx *gin.Context) {
+    email := ctx.Param("email")
+
+    if email == "" {
+        ctx.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("email is required")))
+        return
+    }
+
+    user, err := c.db.GetUserByEmail(ctx, email)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("user not found")))
+            return
+        }
+        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+        return
+    }
+
+    ctx.JSON(http.StatusOK, user)
+}
+
 
 func (c *Play4GoodController) UpdateUser(ctx *gin.Context) {
     id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)

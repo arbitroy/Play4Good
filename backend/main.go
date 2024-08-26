@@ -1,18 +1,21 @@
 package main
 
 import (
-    "context"
-    "database/sql"
-    "fmt"
-    "log"
-    "net/http"
+	"context"
+	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
 
-    "play4good-backend/controllers"
-    dbCon "play4good-backend/db/sqlc"
-    "play4good-backend/routes"
-    "play4good-backend/util"
-    "github.com/gin-gonic/gin"
-    _ "github.com/lib/pq"
+	"play4good-backend/controllers"
+	dbCon "play4good-backend/db/sqlc"
+	"play4good-backend/routes"
+	"play4good-backend/util"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 var (
@@ -29,7 +32,7 @@ func init() {
     config, err := util.LoadConfig(".")
 
     if err != nil {
-        log.Fatalf("could not loadconfig: %v", err)
+        log.Fatalf("could not load config: %v", err)
     }
 
     conn, err := sql.Open(config.DbDriver, config.DbSource)
@@ -45,6 +48,16 @@ func init() {
     Play4GoodRoutes = routes.NewPlay4GoodRoutes(Play4GoodController)
 
     server = gin.Default()
+
+    // Add CORS middleware
+    server.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"http://localhost:3000"}, // Replace with your frontend domain
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+        MaxAge:           12 * time.Hour,
+    }))
 }
 
 func main() {

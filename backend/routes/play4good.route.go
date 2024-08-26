@@ -17,7 +17,8 @@ func (pr *Play4GoodRoutes) SetupRoutes(rg *gin.RouterGroup) {
     router := rg.Group("")
 	// User routes
 	router.POST("/users", pr.play4goodController.CreateUser)
-	router.GET("/users/:id", pr.play4goodController.GetUser)
+	router.GET("/users/id/:id", pr.play4goodController.GetUser)
+	router.GET("/users/email/:email", pr.play4goodController.GetUserByEmail)
 	router.PUT("/users/:id", pr.play4goodController.UpdateUser)
 	router.DELETE("/users/:id", pr.play4goodController.DeleteUser)
 
