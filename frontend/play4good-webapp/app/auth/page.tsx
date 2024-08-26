@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import * as bcrypt from 'bcryptjs';
 import { AuthFormContainer } from '../components/AuthFormContainer';
 import { SocialIcon } from '../components/SocialIcon';
+import { useRouter } from 'next/navigation';
 
 
 const Page: React.FC = () => {
@@ -14,6 +15,7 @@ const Page: React.FC = () => {
     email: "",
     password: ""
   })
+  const router = useRouter();
 
   const handleChange = (e: { target: { name: any; value: any; }; }) => {
     setState({
@@ -37,6 +39,7 @@ const Page: React.FC = () => {
 
   const handleLogin = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
+
 
     try {
       // Retrieve the user data from the database by email
@@ -63,6 +66,10 @@ const Page: React.FC = () => {
           email: "",
           password: ""
         })
+        const days = 7;
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = `auth=true; expires=${expires}; max-age=3600; path=/; SameSite=Strict`;
+        router.push('/');
       } else {
         console.error("Invalid password");
       }
@@ -105,6 +112,11 @@ const Page: React.FC = () => {
         email: "",
         password: ""
       })
+      const days = 7;
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `auth=true; expires=${expires}; max-age=3600; path=/; SameSite=Strict`;
+
+      router.push('/');
     } catch (error) {
       console.error('Error:', error);
     }
@@ -127,7 +139,7 @@ const Page: React.FC = () => {
   return (
     <AuthFormContainer className={isSignUp ? 'right-panel-active' : ''}>
       <div className="form-container sign-up-container">
-        <form action="#">
+        <form onSubmit={handleSubmit}>
           <h1 style={{ fontSize: "1.5rem" }}>Create Account</h1>
           <div className="social-media">
             <SocialIcon href="#" className="social">
@@ -140,11 +152,11 @@ const Page: React.FC = () => {
           <input type="text" placeholder="Last Name" name='last_name' value={formData.last_name} onChange={handleChange} required />
           <input type="email" placeholder="Email" name='email' value={formData.email} onChange={handleChange} required />
           <input type="password" placeholder="Password" name='password' value={formData.password} onChange={handleChange} required />
-          <button onClick={handleSubmit}>Sign Up</button>
+          <button type="submit">Sign Up</button>
         </form>
       </div>
       <div className="form-container log-in-container">
-        <form action="#">
+        <form onSubmit={handleLogin}>
           <h1 >Log In</h1>
           <div className="social-media">
             <SocialIcon href="#" className="social">
@@ -156,7 +168,7 @@ const Page: React.FC = () => {
           <input type="email" placeholder="Email" name='email' value={formData.email} onChange={handleChange} required />
           <input type="password" placeholder="Password" name='password' value={formData.password} onChange={handleChange} required />
           <a href="#">Forgot your password?</a>
-          <button onClick={handleLogin}>Sign In</button>
+          <button type="submit">Sign In</button>
         </form>
       </div>
       <div className="overlay-container">
