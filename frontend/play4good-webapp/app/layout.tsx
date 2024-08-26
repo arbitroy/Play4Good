@@ -3,6 +3,7 @@ import { Nunito } from "next/font/google";
 import StyledComponentsRegistry from './registry'
 import { GlobalStyle } from './globalStyles'
 import Link from 'next/link'
+import Navbar from "./components/Navbar";
 
 
 const nunito = Nunito({ subsets: ["latin"] });
@@ -25,9 +26,7 @@ export default function RootLayout({
       <body className={nunito.className}>
         <StyledComponentsRegistry >
           <GlobalStyle />
-          <nav>
-            <Link href="/auth">Auth</Link>
-          </nav>
+          <Navbar/>
           {children}
         </StyledComponentsRegistry>
       </body>

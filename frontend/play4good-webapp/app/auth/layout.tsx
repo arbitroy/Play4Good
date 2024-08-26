@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Navbar from '../components/Navbar'
 
 export default function AuthLayout({
     children, // will be a page or nested layout
@@ -7,11 +8,6 @@ export default function AuthLayout({
   }) {
     return (
       <section>
-        {/* Include shared UI here e.g. a header or sidebar */}
-        <nav>
-            <Link href="/">Home</Link>
-        </nav>
-   
         {children}
       </section>
     )
