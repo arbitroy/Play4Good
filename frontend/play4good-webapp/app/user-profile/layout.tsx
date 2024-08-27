@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export default function AuthLayout({
+export default function ProfileLayout({
     children, // will be a page or nested layout
   }: {
     children: React.ReactNode

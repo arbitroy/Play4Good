@@ -1,0 +1,104 @@
+.section {
+    padding: 5px 0;
+    position: relative;
+    color: #FFFFFF;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.flexRowReverse {
+    flex-direction: row-reverse;
+}
+
+.colLg6 {
+    width: 50%;
+}
+
+.aboutText h3 {
+    font-size: 45px;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+
+.aboutText h6 {
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.aboutText p {
+    font-size: 18px;
+    max-width: 450px;
+}
+
+.aboutText p mark {
+    font-weight: 600;
+    color: #20247b;
+}
+
+.rowAboutList {
+    padding-top: 10px;
+}
+
+.colMd6 {
+    width: 50%;
+}
+
+.media {
+    padding: 5px 0;
+}
+
+.media label {
+    color: #20247b;
+    font-weight: 600;
+    width: 88px;
+    margin: 0;
+    position: relative;
+}
+
+.media label::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 11px;
+    width: 1px;
+    height: 12px;
+    background: #20247b;
+    transform: rotate(15deg);
+    margin: auto;
+    opacity: 0.5;
+}
+
+.media p {
+    margin: 0;
+    font-size: 15px;
+}
+
+.aboutAvatar img {
+    max-width: 100%;
+    vertical-align: middle;
+    align-items: center;
+    border-style: none;
+}
+
+.fontW600 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.themeColor {
+    color: #fc5356;
+}
+
+.darkColor {
+    color: #20247b;
+}
