@@ -5,36 +5,146 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	db "play4good-backend/db/sqlc"
 	"play4good-backend/schemas"
+	"play4good-backend/util"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Play4GoodController struct {
-    db  *db.Queries
-    ctx context.Context
+	db  *db.Queries
+	ctx context.Context
 }
 
 func NewPlay4GoodController(db *db.Queries, ctx context.Context) *Play4GoodController {
-    return &Play4GoodController{db, ctx}
+	return &Play4GoodController{db, ctx}
 }
 
 func errorResponse(err error) gin.H {
-    return gin.H{"error": err.Error()}
+	return gin.H{"error": err.Error()}
+}
+
+func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
+	// Parse and validate the request body
+	var req struct {
+		Username  string `json:"username" binding:"required,min=3,max=50"`
+		Email     string `json:"email" binding:"required,email"`
+		Password  string `json:"password" binding:"required,min=8"`
+		FirstName string `json:"first_name" binding:"required"`
+		LastName  string `json:"last_name" binding:"required"`
+		AvatarURL string `json:"avatar_url" binding:"omitempty,url"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if the email already exists in the database
+	_, err := pc.db.GetUserByEmail(pc.ctx, req.Email)
+	if err == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+		return
+	}
+
+	// Hash the user's password
+	hashedPassword, err := util.HashPassword(req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+		return
+	}
+
+	// Create a new user in the database
+	newUser := db.CreateUserParams{
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: hashedPassword, // Note: You should hash this password before storing
+		FirstName:    sql.NullString{String: req.FirstName, Valid: req.FirstName != ""},
+		LastName:     sql.NullString{String: req.LastName, Valid: req.LastName != ""},
+		AvatarUrl:    sql.NullString{String: req.AvatarURL, Valid: req.AvatarURL != ""},
+	}
+
+	user, err := pc.db.CreateUser(pc.ctx, newUser)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+		return
+	}
+
+	// Generate a JWT token for the newly created user
+	token, err := util.CreateToken(string(user.ID), util.SecretKey)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create token"})
+		return
+	}
+
+	// Return the created user (excluding sensitive information like password) and the JWT token
+	ctx.JSON(http.StatusCreated, gin.H{
+		"id":    user.ID,
+		"first_name":  user.FirstName,
+		"last_name":  user.LastName,
+		"email": user.Email,
+		"token": token,
+	})
+}
+
+func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
+	// Parse and validate the request
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Retrieve the user from the database
+	user, err := pc.db.GetUserByEmail(pc.ctx, req.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		}
+		return
+	}
+
+	// Verify the password
+	if err := util.CheckPassword(req.Password, user.PasswordHash); err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Create a JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(time.Hour * 72).Unix(),
+	})
+
+	// Sign the token with a secret key
+	tokenString, err := token.SignedString([]byte(util.SecretKey))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create token"})
+		return
+	}
+
+	// Return the token to the client
+	ctx.JSON(http.StatusOK, gin.H{"token": tokenString})
 }
 
 // User Controllers
 func (c *Play4GoodController) CreateUser(ctx *gin.Context) {
-    var payload *schemas.UserCreateRequest;
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.UserCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.CreateUserParams{
+	arg := db.CreateUserParams{
 		Username:     payload.Username,
 		Email:        payload.Email,
 		PasswordHash: payload.Password, // Note: You should hash this password before storing
@@ -43,215 +153,212 @@ func (c *Play4GoodController) CreateUser(ctx *gin.Context) {
 		AvatarUrl:    sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
 	}
 
-    user, err := c.db .CreateUser(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	user, err := c.db.CreateUser(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (c *Play4GoodController) GetUser(ctx *gin.Context) {
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	id := int32(id64)
 
-    user, err := c.db.GetUser(ctx, id)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(err))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	user, err := c.db.GetUser(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (c *Play4GoodController) GetUserByEmail(ctx *gin.Context) {
-    email := ctx.Param("email")
+	email := ctx.Param("email")
 
-    if email == "" {
-        ctx.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("email is required")))
-        return
-    }
+	if email == "" {
+		ctx.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("email is required")))
+		return
+	}
 
-    user, err := c.db.GetUserByEmail(ctx, email)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("user not found")))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	user, err := c.db.GetUserByEmail(ctx, email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("user not found")))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, user)
 }
 
-
 func (c *Play4GoodController) UpdateUser(ctx *gin.Context) {
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	var payload *schemas.UserUpdateRequest
-	
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
 
-    arg := db.UpdateUserParams{
-        ID:        id,
-        Username:  payload.Username,
-        Email:     payload.Email,
-        FirstName:    sql.NullString{String: payload.FirstName, Valid: payload.FirstName != ""},
-		LastName:     sql.NullString{String: payload.LastName, Valid: payload.LastName != ""},
-        AvatarUrl: sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
-    }
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    user, err := c.db .UpdateUser(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	arg := db.UpdateUserParams{
+		ID:        id,
+		Username:  payload.Username,
+		Email:     payload.Email,
+		FirstName: sql.NullString{String: payload.FirstName, Valid: payload.FirstName != ""},
+		LastName:  sql.NullString{String: payload.LastName, Valid: payload.LastName != ""},
+		AvatarUrl: sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
+	}
 
-    ctx.JSON(http.StatusOK, user)
+	user, err := c.db.UpdateUser(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (c *Play4GoodController) DeleteUser(ctx *gin.Context) {
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	id := int32(id64)
 
-    err = c.db.DeleteUser(ctx, id)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	err = c.db.DeleteUser(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
 
 // Team Controllers
 func (c *Play4GoodController) CreateTeam(ctx *gin.Context) {
-    var payload *schemas.TeamCreateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.TeamCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.CreateTeamParams{
-        Name:        payload.Name,
-        Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
-        AvatarUrl:   sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
-    }
+	arg := db.CreateTeamParams{
+		Name:        payload.Name,
+		Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
+		AvatarUrl:   sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
+	}
 
-    team, err := c.db.CreateTeam(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	team, err := c.db.CreateTeam(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, team)
+	ctx.JSON(http.StatusOK, team)
 }
 
-func (c *Play4GoodController) GetTeam (ctx *gin.Context) {
-	id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) GetTeam(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	id := int32(id64)
-    team, err := c.db.GetTeam(ctx, id)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(err))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
-    ctx.JSON(http.StatusOK, team)
+	team, err := c.db.GetTeam(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, team)
 }
 
-func (c *Play4GoodController) UpdateTeam (ctx *gin.Context) {
+func (c *Play4GoodController) UpdateTeam(ctx *gin.Context) {
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	var payload *schemas.TeamUpdateRequest
-	
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
 
-    arg := db.UpdateTeamParams{
-		ID:			 id,
-		Name:        payload.Name,
-        Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
-        AvatarUrl:   sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
 	}
-        
 
-    team, err := c.db.UpdateTeam(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	arg := db.UpdateTeamParams{
+		ID:          id,
+		Name:        payload.Name,
+		Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
+		AvatarUrl:   sql.NullString{String: payload.AvatarURL, Valid: payload.AvatarURL != ""},
+	}
 
-    ctx.JSON(http.StatusOK, team)
+	team, err := c.db.UpdateTeam(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, team)
 }
 
-func (c *Play4GoodController) DeleteTeam (ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) DeleteTeam(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	id := int32(id64)
 
-    err = c.db.DeleteTeam(ctx, id)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	err = c.db.DeleteTeam(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, gin.H{"message": "Team deleted successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Team deleted successfully"})
 }
-
 
 // Cause Controllers
 func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
-    var payload *schemas.CauseCreateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.CauseCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.CreateCauseParams{
-        Name:        payload.Name,
-        Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
-        Goal: sql.NullString{
+	arg := db.CreateCauseParams{
+		Name:        payload.Name,
+		Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
+		Goal: sql.NullString{
 			String: strconv.FormatFloat(payload.Goal, 'f', -1, 64),
 			Valid:  true,
 		},
@@ -259,60 +366,60 @@ func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
 			Time:  payload.StartDate,
 			Valid: !payload.StartDate.IsZero(),
 		},
-        EndDate:     sql.NullTime{
+		EndDate: sql.NullTime{
 			Time:  payload.EndDate,
 			Valid: !payload.EndDate.IsZero(),
 		},
-        Status:     sql.NullString{String: payload.Status, Valid: payload.Status != ""},
-    }
+		Status: sql.NullString{String: payload.Status, Valid: payload.Status != ""},
+	}
 
-    cause, err := c.db .CreateCause(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	cause, err := c.db.CreateCause(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, cause)
+	ctx.JSON(http.StatusOK, cause)
 }
 
-func (c *Play4GoodController) GetCause(ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) GetCause(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	id := int32(id64)
-    cause, err := c.db.GetCause(ctx, id)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(err))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
-    ctx.JSON(http.StatusOK, cause)
+	cause, err := c.db.GetCause(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, cause)
 }
-func (c *Play4GoodController) UpdateCause(ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+func (c *Play4GoodController) UpdateCause(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	var payload *schemas.CauseUpdateRequest
-	
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
 
-    arg := db.UpdateCauseParams{
-        ID: id,
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.UpdateCauseParams{
+		ID:          id,
 		Name:        payload.Name,
-        Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
-        Goal: sql.NullString{
+		Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
+		Goal: sql.NullString{
 			String: strconv.FormatFloat(payload.Goal, 'f', -1, 64),
 			Valid:  true,
 		},
@@ -320,50 +427,49 @@ func (c *Play4GoodController) UpdateCause(ctx *gin.Context){
 			Time:  payload.StartDate,
 			Valid: !payload.StartDate.IsZero(),
 		},
-        EndDate:     sql.NullTime{
+		EndDate: sql.NullTime{
 			Time:  payload.EndDate,
 			Valid: !payload.EndDate.IsZero(),
 		},
-        Status:     sql.NullString{String: payload.Status, Valid: payload.Status != ""},
+		Status: sql.NullString{String: payload.Status, Valid: payload.Status != ""},
 	}
-        
 
-    cause, err := c.db.UpdateCause(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	cause, err := c.db.UpdateCause(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, cause)
+	ctx.JSON(http.StatusOK, cause)
 }
-func (c *Play4GoodController) DeleteCause(ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) DeleteCause(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	id := int32(id64)
 
-    err = c.db.DeleteCause(ctx, id)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	err = c.db.DeleteCause(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, gin.H{"message": "Cause deleted successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Cause deleted successfully"})
 }
 
 // Donation Controllers
 func (c *Play4GoodController) CreateDonation(ctx *gin.Context) {
-    var payload *schemas.DonationCreateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.DonationCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.CreateDonationParams{
-        UserID: sql.NullInt32{
+	arg := db.CreateDonationParams{
+		UserID: sql.NullInt32{
 			Int32: int32(payload.UserID),
 			Valid: true,
 		},
@@ -371,202 +477,202 @@ func (c *Play4GoodController) CreateDonation(ctx *gin.Context) {
 			Int32: int32(payload.CauseID),
 			Valid: true,
 		},
-        TeamID: sql.NullInt32{
+		TeamID: sql.NullInt32{
 			Int32: int32(payload.TeamID),
 			Valid: payload.TeamID != 0,
 		},
-        Amount: sql.NullString{
+		Amount: sql.NullString{
 			String: strconv.FormatFloat(payload.Amount, 'f', -1, 64),
 			Valid:  true,
 		},
-        DonationType:  sql.NullString{String: payload.DonationType, Valid: payload.DonationType != ""},
-    }
+		DonationType: sql.NullString{String: payload.DonationType, Valid: payload.DonationType != ""},
+	}
 
-    donation, err := c.db .CreateDonation(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	donation, err := c.db.CreateDonation(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, donation)
+	ctx.JSON(http.StatusOK, donation)
 }
 
-func (c *Play4GoodController) GetDonation(ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) GetDonation(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	id := int32(id64)
-    donation, err := c.db.GetDonation(ctx, id)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(err))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
-    ctx.JSON(http.StatusOK, donation)
+	donation, err := c.db.GetDonation(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, donation)
 }
 
 // AddUserToTeam adds a user to a team
 func (c *Play4GoodController) AddUserToTeam(ctx *gin.Context) {
-    var payload *schemas.UserTeamCreateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.UserTeamCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.AddUserToTeamParams{
-        UserID: int32(payload.UserID),
-        TeamID: int32(payload.TeamID),
-        Role:   payload.Role,
-    }
+	arg := db.AddUserToTeamParams{
+		UserID: int32(payload.UserID),
+		TeamID: int32(payload.TeamID),
+		Role:   payload.Role,
+	}
 
-    userTeam, err := c.db.AddUserToTeam(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	userTeam, err := c.db.AddUserToTeam(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, userTeam)
+	ctx.JSON(http.StatusOK, userTeam)
 }
 
 // UpdateUserTeamRole updates a user's role in a team
 func (c *Play4GoodController) UpdateUserTeamRole(ctx *gin.Context) {
-    userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    var payload *schemas.UserTeamUpdateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.UserTeamUpdateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.UpdateUserTeamRoleParams{
-        UserID: int32(userID),
-        TeamID: int32(teamID),
-        Role:   payload.Role,
-    }
+	arg := db.UpdateUserTeamRoleParams{
+		UserID: int32(userID),
+		TeamID: int32(teamID),
+		Role:   payload.Role,
+	}
 
-    userTeam, err := c.db.UpdateUserTeamRole(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	userTeam, err := c.db.UpdateUserTeamRole(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, userTeam)
+	ctx.JSON(http.StatusOK, userTeam)
 }
 
 // RemoveUserFromTeam removes a user from a team
 func (c *Play4GoodController) RemoveUserFromTeam(ctx *gin.Context) {
-    userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	teamID, err := strconv.ParseInt(ctx.Param("teamId"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.RemoveUserFromTeamParams{
-        UserID: int32(userID),
-        TeamID: int32(teamID),
-    }
+	arg := db.RemoveUserFromTeamParams{
+		UserID: int32(userID),
+		TeamID: int32(teamID),
+	}
 
-    err = c.db.RemoveUserFromTeam(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	err = c.db.RemoveUserFromTeam(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, gin.H{"message": "User removed from team successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "User removed from team successfully"})
 }
 
 // Leaderboard Controllers
 func (c *Play4GoodController) CreateLeaderboard(ctx *gin.Context) {
-    var payload *schemas.LeaderboardCreateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.LeaderboardCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.CreateLeaderboardParams{
-        Name:      payload.Name,
-        Type:      sql.NullString{String: payload.Type, Valid: payload.Type != ""},
-        StartDate: sql.NullTime{
+	arg := db.CreateLeaderboardParams{
+		Name: payload.Name,
+		Type: sql.NullString{String: payload.Type, Valid: payload.Type != ""},
+		StartDate: sql.NullTime{
 			Time:  payload.StartDate,
 			Valid: !payload.StartDate.IsZero(),
 		},
-        EndDate:     sql.NullTime{
+		EndDate: sql.NullTime{
 			Time:  payload.EndDate,
 			Valid: !payload.EndDate.IsZero(),
 		},
-    }
+	}
 
-    leaderboard, err := c.db .CreateLeaderboard(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	leaderboard, err := c.db.CreateLeaderboard(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, leaderboard)
+	ctx.JSON(http.StatusOK, leaderboard)
 }
 
-func (c *Play4GoodController) GetLeaderboard(ctx *gin.Context){
-    id64, err := strconv.ParseInt(ctx.Param("id"), 10,32)
-    if err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+func (c *Play4GoodController) GetLeaderboard(ctx *gin.Context) {
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	id := int32(id64)
-    leaderboard, err := c.db.GetLeaderboard(ctx, id)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            ctx.JSON(http.StatusNotFound, errorResponse(err))
-            return
-        }
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
-    ctx.JSON(http.StatusOK, leaderboard)
+	leaderboard, err := c.db.GetLeaderboard(ctx, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, leaderboard)
 }
 
 func (c *Play4GoodController) UpdateLeaderboardEntry(ctx *gin.Context) {
-    var payload *schemas.LeaderboardEntryUpdateRequest
-    if err := ctx.ShouldBindJSON(&payload); err != nil {
-        ctx.JSON(http.StatusBadRequest, errorResponse(err))
-        return
-    }
+	var payload *schemas.LeaderboardEntryUpdateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-    arg := db.UpdateLeaderboardEntryParams{
-        LeaderboardID: int32(payload.LeaderboardID),
-        UserID:        int32(payload.UserID),
-        TeamID:        int32(payload.TeamID),
-        Score:         sql.NullString{
+	arg := db.UpdateLeaderboardEntryParams{
+		LeaderboardID: int32(payload.LeaderboardID),
+		UserID:        int32(payload.UserID),
+		TeamID:        int32(payload.TeamID),
+		Score: sql.NullString{
 			String: strconv.FormatFloat(payload.Score, 'f', -1, 64),
 			Valid:  true,
 		},
-    }
+	}
 
-    entry, err := c.db .UpdateLeaderboardEntry(ctx, arg)
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-        return
-    }
+	entry, err := c.db.UpdateLeaderboardEntry(ctx, arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-    ctx.JSON(http.StatusOK, entry)
+	ctx.JSON(http.StatusOK, entry)
 }
