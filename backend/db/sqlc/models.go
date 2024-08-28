@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
 
 type Cause struct {
@@ -73,4 +74,13 @@ type UserTeam struct {
 	UserID int32  `json:"user_id"`
 	TeamID int32  `json:"team_id"`
 	Role   string `json:"role"`
+}
+
+type UserToken struct {
+	ID        int32         `json:"id"`
+	UserID    sql.NullInt32 `json:"user_id"`
+	Token     string        `json:"token"`
+	Expiry    time.Time     `json:"expiry"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
 }

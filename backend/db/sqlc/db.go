@@ -42,14 +42,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
 	}
+	if q.createUserTokenStmt, err = db.PrepareContext(ctx, createUserToken); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateUserToken: %w", err)
+	}
 	if q.deleteCauseStmt, err = db.PrepareContext(ctx, deleteCause); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteCause: %w", err)
+	}
+	if q.deleteExpiredTokensStmt, err = db.PrepareContext(ctx, deleteExpiredTokens); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteExpiredTokens: %w", err)
 	}
 	if q.deleteTeamStmt, err = db.PrepareContext(ctx, deleteTeam); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteTeam: %w", err)
 	}
 	if q.deleteUserStmt, err = db.PrepareContext(ctx, deleteUser); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteUser: %w", err)
+	}
+	if q.deleteUserTokenStmt, err = db.PrepareContext(ctx, deleteUserToken); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteUserToken: %w", err)
 	}
 	if q.getCauseStmt, err = db.PrepareContext(ctx, getCause); err != nil {
 		return nil, fmt.Errorf("error preparing query GetCause: %w", err)
@@ -71,6 +80,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getUserByEmailStmt, err = db.PrepareContext(ctx, getUserByEmail); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByEmail: %w", err)
+	}
+	if q.getUserTokenByUserIDStmt, err = db.PrepareContext(ctx, getUserTokenByUserID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTokenByUserID: %w", err)
 	}
 	if q.listCausesStmt, err = db.PrepareContext(ctx, listCauses); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCauses: %w", err)
@@ -143,9 +155,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
 		}
 	}
+	if q.createUserTokenStmt != nil {
+		if cerr := q.createUserTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createUserTokenStmt: %w", cerr)
+		}
+	}
 	if q.deleteCauseStmt != nil {
 		if cerr := q.deleteCauseStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteCauseStmt: %w", cerr)
+		}
+	}
+	if q.deleteExpiredTokensStmt != nil {
+		if cerr := q.deleteExpiredTokensStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteExpiredTokensStmt: %w", cerr)
 		}
 	}
 	if q.deleteTeamStmt != nil {
@@ -156,6 +178,11 @@ func (q *Queries) Close() error {
 	if q.deleteUserStmt != nil {
 		if cerr := q.deleteUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteUserStmt: %w", cerr)
+		}
+	}
+	if q.deleteUserTokenStmt != nil {
+		if cerr := q.deleteUserTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteUserTokenStmt: %w", cerr)
 		}
 	}
 	if q.getCauseStmt != nil {
@@ -191,6 +218,11 @@ func (q *Queries) Close() error {
 	if q.getUserByEmailStmt != nil {
 		if cerr := q.getUserByEmailStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserByEmailStmt: %w", cerr)
+		}
+	}
+	if q.getUserTokenByUserIDStmt != nil {
+		if cerr := q.getUserTokenByUserIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTokenByUserIDStmt: %w", cerr)
 		}
 	}
 	if q.listCausesStmt != nil {
@@ -298,9 +330,12 @@ type Queries struct {
 	createLeaderboardStmt      *sql.Stmt
 	createTeamStmt             *sql.Stmt
 	createUserStmt             *sql.Stmt
+	createUserTokenStmt        *sql.Stmt
 	deleteCauseStmt            *sql.Stmt
+	deleteExpiredTokensStmt    *sql.Stmt
 	deleteTeamStmt             *sql.Stmt
 	deleteUserStmt             *sql.Stmt
+	deleteUserTokenStmt        *sql.Stmt
 	getCauseStmt               *sql.Stmt
 	getDonationStmt            *sql.Stmt
 	getLeaderboardStmt         *sql.Stmt
@@ -308,6 +343,7 @@ type Queries struct {
 	getTeamStmt                *sql.Stmt
 	getUserStmt                *sql.Stmt
 	getUserByEmailStmt         *sql.Stmt
+	getUserTokenByUserIDStmt   *sql.Stmt
 	listCausesStmt             *sql.Stmt
 	listDonationsStmt          *sql.Stmt
 	listLeaderboardsStmt       *sql.Stmt
@@ -332,9 +368,12 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createLeaderboardStmt:      q.createLeaderboardStmt,
 		createTeamStmt:             q.createTeamStmt,
 		createUserStmt:             q.createUserStmt,
+		createUserTokenStmt:        q.createUserTokenStmt,
 		deleteCauseStmt:            q.deleteCauseStmt,
+		deleteExpiredTokensStmt:    q.deleteExpiredTokensStmt,
 		deleteTeamStmt:             q.deleteTeamStmt,
 		deleteUserStmt:             q.deleteUserStmt,
+		deleteUserTokenStmt:        q.deleteUserTokenStmt,
 		getCauseStmt:               q.getCauseStmt,
 		getDonationStmt:            q.getDonationStmt,
 		getLeaderboardStmt:         q.getLeaderboardStmt,
@@ -342,6 +381,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getTeamStmt:                q.getTeamStmt,
 		getUserStmt:                q.getUserStmt,
 		getUserByEmailStmt:         q.getUserByEmailStmt,
+		getUserTokenByUserIDStmt:   q.getUserTokenByUserIDStmt,
 		listCausesStmt:             q.listCausesStmt,
 		listDonationsStmt:          q.listDonationsStmt,
 		listLeaderboardsStmt:       q.listLeaderboardsStmt,

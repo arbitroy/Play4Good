@@ -13,7 +13,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Play4GoodController struct {
@@ -74,20 +73,32 @@ func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
-	// Generate a JWT token for the newly created user
-	token, err := util.CreateToken(string(user.ID), util.SecretKey)
+	// Generate the JWT token
+	tokenString, err := util.GenerateJWT(int(user.ID))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create token"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	// Create a new token record in the database
+	expiry := time.Now().Add(24 * time.Hour) // 24-hour expiry
+	_, err = pc.db.CreateUserToken(pc.ctx, db.CreateUserTokenParams{
+		UserID: sql.NullInt32{Int32: user.ID, Valid: true},
+		Token:  tokenString,
+		Expiry: expiry,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
 	}
 
 	// Return the created user (excluding sensitive information like password) and the JWT token
 	ctx.JSON(http.StatusCreated, gin.H{
-		"id":    user.ID,
-		"first_name":  user.FirstName,
+		"id":         user.ID,
+		"first_name": user.FirstName,
 		"last_name":  user.LastName,
-		"email": user.Email,
-		"token": token,
+		"email":      user.Email,
+		"token":      tokenString,
 	})
 }
 
@@ -119,16 +130,30 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	// Create a JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
-	})
+	// Check if the user already has a valid token
+    userToken, err := pc.db.GetUserTokenByUserID(pc.ctx, sql.NullInt32{Int32: user.ID, Valid: true})
+    if err == nil && userToken.Expiry.After(time.Now()) {
+        // Return the existing token if it's still valid
+        ctx.JSON(http.StatusOK, gin.H{"token": userToken.Token})
+        return
+    }
 
-	// Sign the token with a secret key
-	tokenString, err := token.SignedString([]byte(util.SecretKey))
+    // If no valid token, generate a new one
+	tokenString, err := util.GenerateJWT(int(user.ID))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create token"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	// Create a new token record in the database
+	expiry := time.Now().Add(24 * time.Hour) // 24-hour expiry
+	_, err = pc.db.CreateUserToken(pc.ctx, db.CreateUserTokenParams{
+		UserID: sql.NullInt32{Int32: user.ID, Valid: true},
+		Token:  tokenString,
+		Expiry: expiry,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
 	}
 

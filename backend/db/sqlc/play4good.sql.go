@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const addUserToTeam = `-- name: AddUserToTeam :one
@@ -203,6 +204,32 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const createUserToken = `-- name: CreateUserToken :one
+INSERT INTO user_tokens (user_id, token, expiry)
+VALUES ($1, $2, $3)
+RETURNING id, user_id, token, expiry, created_at, updated_at
+`
+
+type CreateUserTokenParams struct {
+	UserID sql.NullInt32 `json:"user_id"`
+	Token  string        `json:"token"`
+	Expiry time.Time     `json:"expiry"`
+}
+
+func (q *Queries) CreateUserToken(ctx context.Context, arg CreateUserTokenParams) (UserToken, error) {
+	row := q.queryRow(ctx, q.createUserTokenStmt, createUserToken, arg.UserID, arg.Token, arg.Expiry)
+	var i UserToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Token,
+		&i.Expiry,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteCause = `-- name: DeleteCause :exec
 DELETE FROM causes
 WHERE id = $1
@@ -210,6 +237,16 @@ WHERE id = $1
 
 func (q *Queries) DeleteCause(ctx context.Context, id int32) error {
 	_, err := q.exec(ctx, q.deleteCauseStmt, deleteCause, id)
+	return err
+}
+
+const deleteExpiredTokens = `-- name: DeleteExpiredTokens :exec
+DELETE FROM user_tokens
+WHERE expiry < now()
+`
+
+func (q *Queries) DeleteExpiredTokens(ctx context.Context) error {
+	_, err := q.exec(ctx, q.deleteExpiredTokensStmt, deleteExpiredTokens)
 	return err
 }
 
@@ -230,6 +267,22 @@ WHERE id = $1
 
 func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	_, err := q.exec(ctx, q.deleteUserStmt, deleteUser, id)
+	return err
+}
+
+const deleteUserToken = `-- name: DeleteUserToken :exec
+DELETE FROM user_tokens
+WHERE user_id = $1
+AND token = $2
+`
+
+type DeleteUserTokenParams struct {
+	UserID sql.NullInt32 `json:"user_id"`
+	Token  string        `json:"token"`
+}
+
+func (q *Queries) DeleteUserToken(ctx context.Context, arg DeleteUserTokenParams) error {
+	_, err := q.exec(ctx, q.deleteUserTokenStmt, deleteUserToken, arg.UserID, arg.Token)
 	return err
 }
 
@@ -394,6 +447,28 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.FirstName,
 		&i.LastName,
 		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserTokenByUserID = `-- name: GetUserTokenByUserID :one
+SELECT id, user_id, token, expiry, created_at, updated_at
+FROM user_tokens
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetUserTokenByUserID(ctx context.Context, userID sql.NullInt32) (UserToken, error) {
+	row := q.queryRow(ctx, q.getUserTokenByUserIDStmt, getUserTokenByUserID, userID)
+	var i UserToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Token,
+		&i.Expiry,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

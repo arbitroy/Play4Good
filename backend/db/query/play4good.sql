@@ -135,3 +135,24 @@ SELECT * FROM leaderboard_entries
 WHERE leaderboard_id = $1
 ORDER BY rank
 LIMIT $2 OFFSET $3;
+
+-- name: CreateUserToken :one
+INSERT INTO user_tokens (user_id, token, expiry)
+VALUES ($1, $2, $3)
+RETURNING id, user_id, token, expiry, created_at, updated_at;
+
+-- name: GetUserTokenByUserID :one
+SELECT id, user_id, token, expiry, created_at, updated_at
+FROM user_tokens
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: DeleteUserToken :exec
+DELETE FROM user_tokens
+WHERE user_id = $1
+AND token = $2;
+
+-- name: DeleteExpiredTokens :exec
+DELETE FROM user_tokens
+WHERE expiry < now();

@@ -7,27 +7,57 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var jwtKey = []byte("your-secret-key")
+
+type Claims struct {
+	UserID int `json:"user_id"`
+	jwt.RegisteredClaims
+}
+
 var SecretKey = "your-secret-key"
 
 func HashPassword(password string) (string, error) {
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-    if err != nil {
-        return "", err
-    }
-    return string(hashedPassword), nil
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
 }
 
 func CheckPassword(password, hashedPassword string) error {
-    return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
 func CreateToken(userID string, secret string) (string, error) {
-    claims := jwt.MapClaims{}
-    claims["authorized"] = true
-    claims["user_id"] = userID
-    claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires after 24 hours
+	claims := jwt.MapClaims{}
+	claims["authorized"] = true
+	claims["user_id"] = userID
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires after 24 hours
 
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-    return token.SignedString([]byte(secret))
+	return token.SignedString([]byte(secret))
+}
+
+// GenerateJWT generates a new JWT for a given user ID.
+func GenerateJWT(userID int) (string, error) {
+	// Set token claims
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+		},
+	}
+
+	// Create the token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with the secret key
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
