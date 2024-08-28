@@ -7,6 +7,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
+
 var jwtKey = []byte("your-secret-key")
 
 type Claims struct {
@@ -14,7 +16,6 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var SecretKey = "your-secret-key"
 
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -26,17 +27,6 @@ func HashPassword(password string) (string, error) {
 
 func CheckPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func CreateToken(userID string, secret string) (string, error) {
-	claims := jwt.MapClaims{}
-	claims["authorized"] = true
-	claims["user_id"] = userID
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token expires after 24 hours
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString([]byte(secret))
 }
 
 // GenerateJWT generates a new JWT for a given user ID.
@@ -58,6 +48,5 @@ func GenerateJWT(userID int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return tokenString, nil
 }
