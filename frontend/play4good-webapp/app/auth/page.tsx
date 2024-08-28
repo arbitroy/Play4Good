@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react';
-import * as bcrypt from 'bcryptjs';
 import { AuthFormContainer } from '../components/AuthFormContainer';
 import { SocialIcon } from '../components/SocialIcon';
 import { useRouter } from 'next/navigation';
@@ -24,104 +23,102 @@ const Page: React.FC = () => {
     })
   }
 
-  const getUserFromDB = async (email: string) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/users/email/${email}`);
-      if (!response.ok) {
-        throw new Error('User not found or some other error');
-      }
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
   const handleLogin = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
 
-
     try {
-      // Retrieve the user data from the database by email
-      const user = await getUserFromDB(formData.email);
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      if (!user) {
-        console.error("User not found");
-        return;
+      if (!response.ok) {
+        throw new Error('Login failed');
       }
 
-      // Assuming user.password contains the hashed password stored in your database
-      const storedHashedPassword = user.password_hash;
+      const data = await response.json();
 
-      // Use bcrypt or a similar library to compare the hashed password
-      const isPasswordValid = await bcrypt.compare(formData.password, storedHashedPassword);
+      // Assuming the API returns a JWT in the response
+      const token = data.token;
 
-      if (isPasswordValid) {
+      if (token) {
+        // Set JWT as a cookie
+        document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
+
         console.log("Login successful!");
-        // Proceed with the login process (e.g., setting a session, redirecting)
         setState({
           username: "",
           first_name: "",
           last_name: "",
           email: "",
           password: ""
-        })
-        const days = 7;
-        const expires = new Date(Date.now() + days * 864e5).toUTCString();
-        document.cookie = `auth=true; expires=${expires}; max-age=3600; path=/; SameSite=Strict`;
+        });
+
         router.push('/');
       } else {
-        console.error("Invalid password");
+        console.error("Token not received");
       }
     } catch (error) {
       console.error("An error occurred during login:", error);
     }
-  }
+  };
 
   const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
-    //hash password
-    const salt = await bcrypt.genSalt(10);
-    const passHashed = await bcrypt.hash(formData.password, salt);
-
-    // Create a new object with the hashed password
-    const updatedFormData = {
-      ...formData,
-      password: passHashed,
-    };
-
-    // Convert updatedFormData to JSON
-    const jsonData = JSON.stringify(updatedFormData);
 
     try {
-      // Send the JSON data to your API
-      const response = await fetch('http://localhost:8000/api/users', {
+      
+
+      // Send the signup data to your API
+      const response = await fetch('http://localhost:8000/api/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonData,
+        body: JSON.stringify({
+          ...formData
+        }),
       });
 
-      const result = await response.json();
-      console.log('Success:', result);
-      setState({
-        username: "",
-        first_name: "",
-        last_name: "",
-        email: "",
-        password: ""
-      })
-      const days = 7;
-      const expires = new Date(Date.now() + days * 864e5).toUTCString();
-      document.cookie = `auth=true; expires=${expires}; max-age=3600; path=/; SameSite=Strict`;
+      if (!response.ok) {
+        throw new Error('Signup failed');
+      }
 
-      router.push('/');
+      const data = await response.json();
+
+      // Assuming the API returns a JWT in the response
+      const token = data.token;
+
+      if (token) {
+        // Set JWT as a cookie
+        document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
+
+        console.log("Signup successful!");
+        setState({
+          username: "",
+          first_name: "",
+          last_name: "",
+          email: "",
+          password: ""
+        });
+
+        router.push('/');
+      } else {
+        console.error("Token not received");
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("An error occurred during signup:", error);
     }
-  }
+  };
 
+
+  
   const [isSignUp, setIsSignUp] = useState(false);
 
 
