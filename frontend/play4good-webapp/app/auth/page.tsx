@@ -44,12 +44,12 @@ const Page: React.FC = () => {
 
       const data = await response.json();
 
-      // Assuming the API returns a JWT in the response
-      const token = data.token;
-
-      if (token) {
+      if (data.token) {
         // Set JWT as a cookie
-        document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
+        document.cookie = `token=${data.token};path=/; max-age=3600; SameSite=Strict`;
+        sessionStorage.setItem("email", data.email);
+        sessionStorage.setItem("first_name", data.first_name.String);
+        sessionStorage.setItem("last_name", data.last_name.String);
 
         console.log("Login successful!");
         setState({
@@ -71,7 +71,6 @@ const Page: React.FC = () => {
 
   const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
-
     try {
       
 
@@ -117,10 +116,7 @@ const Page: React.FC = () => {
     }
   };
 
-
-  
   const [isSignUp, setIsSignUp] = useState(false);
-
 
   const toggleForm = () => {
     setIsSignUp(!isSignUp);

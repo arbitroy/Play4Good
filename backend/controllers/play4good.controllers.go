@@ -134,7 +134,13 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
     userToken, err := pc.db.GetUserTokenByUserID(pc.ctx, sql.NullInt32{Int32: user.ID, Valid: true})
     if err == nil && userToken.Expiry.After(time.Now()) {
         // Return the existing token if it's still valid
-        ctx.JSON(http.StatusOK, gin.H{"token": userToken.Token})
+        ctx.JSON(http.StatusOK, gin.H{
+			"id":         user.ID,
+			"first_name": user.FirstName,
+			"last_name":  user.LastName,
+			"email":      user.Email,
+			"token":      userToken.Token,
+		})
         return
     }
 
@@ -158,7 +164,13 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 	}
 
 	// Return the token to the client
-	ctx.JSON(http.StatusOK, gin.H{"token": tokenString})
+	ctx.JSON(http.StatusOK, gin.H{
+		"id":         user.ID,
+		"first_name": user.FirstName,
+		"last_name":  user.LastName,
+		"email":      user.Email,
+		"token":      tokenString,
+	})
 }
 
 // User Controllers
