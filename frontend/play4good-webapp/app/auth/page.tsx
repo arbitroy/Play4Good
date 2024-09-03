@@ -50,6 +50,7 @@ const Page: React.FC = () => {
         sessionStorage.setItem("email", data.email);
         sessionStorage.setItem("first_name", data.first_name.String);
         sessionStorage.setItem("last_name", data.last_name.String);
+        sessionStorage.setItem("avatarUrl", data.avatarUrl.String);
 
         console.log("Login successful!");
         setState({

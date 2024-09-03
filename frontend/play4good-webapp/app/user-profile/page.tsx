@@ -1,9 +1,30 @@
+'use client'
 import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
+import { useEffect, useState } from 'react';
+import useStorage from '../utils/useStorage';
 
 const Page = () => {
+    const { getItem } = useStorage();
+    const [user, setUser] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        avatar: '',
+    });
+
+    // Load data from localStorage on the client side
+    useEffect(() => {
+        setUser({
+            firstName: getItem('first_name') || '',
+            lastName: getItem('last_name') || '',
+            email: getItem('email') || '',
+            avatar: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
+        });
+    }, [getItem]);
+
     return (
-        <section className={`${styles.section} `} id="about">
+        <section className={`${styles.section}`} id="about">
             <div className={styles.container}>
                 <div className={`${styles.row} ${styles.flexRowReverse}`}>
                     <div className={styles.colLg6}>
@@ -15,18 +36,18 @@ const Page = () => {
                             <div className={styles.rowAboutList}>
                                 <div className={styles.colMd6}>
                                     <div className={styles.media}>
-                                        <label>Residence</label>
-                                        <p>Canada</p>
+                                        <label>First Name</label>
+                                        <p>{user.firstName}</p>
                                     </div>
                                     <div className={styles.media}>
-                                        <label>Address</label>
-                                        <p>California, USA</p>
+                                        <label>Last Name</label>
+                                        <p>{user.lastName}</p>
                                     </div>
                                 </div>
                                 <div className={styles.colMd6}>
                                     <div className={styles.media}>
                                         <label>E-mail</label>
-                                        <p>info@domain.com</p>
+                                        <p>{user.email}</p>
                                     </div>
                                 </div>
                             </div>
@@ -34,15 +55,16 @@ const Page = () => {
                     </div>
                     <div className={styles.colLg6}>
                         <div className={styles.aboutAvatar}>
-                            <img
-                                src="https://bootdey.com/img/Content/avatar/avatar7.png"
+                            <Image
+                                src={user.avatar}
                                 alt="Avatar"
-                                style={{ width: "65%", borderRadius: "100%" }}
+                                width={350} // Adjust width as needed
+                                height={350} // Adjust height as needed
+                                style={{ borderRadius: "100%" }}
                             />
                         </div>
                     </div>
                 </div>
-
             </div>
         </section>
     );

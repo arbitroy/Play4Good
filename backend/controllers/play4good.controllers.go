@@ -98,6 +98,7 @@ func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"email":      user.Email,
+		"avatarUrl":  user.AvatarUrl,
 		"token":      tokenString,
 	})
 }
@@ -139,6 +140,7 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 			"first_name": user.FirstName,
 			"last_name":  user.LastName,
 			"email":      user.Email,
+			"avatarUrl":  user.AvatarUrl,
 			"token":      userToken.Token,
 		})
         return
@@ -169,6 +171,7 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"email":      user.Email,
+		"avatarUrl":  user.AvatarUrl,
 		"token":      tokenString,
 	})
 }
