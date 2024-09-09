@@ -6,9 +6,9 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'bootdey.com',
                 pathname: '**',
-            }
+            },
         ],
     },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
