@@ -1,0 +1,50 @@
+
+
+services:
+  # PostgreSQL service
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    env_file:
+      - ./backend/app.env
+
+  # PgAdmin service
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 8010
+    ports:
+      - "8010:8010"
+    depends_on:
+      - postgres
+
+  # Next.js service
+  nextjs:
+    build:
+      context: ./frontend/play4good-webapp
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://go-backend:8080 # Points to Go backend service
+    depends_on:
+      - go-backend
+
+  # Go backend service
+  go-backend:
+    build:
+      context: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/dbname?sslmode=disable # Adjust for your app.env setup
+    depends_on:
+      - postgres
+
+volumes:
+  db:

@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 
 
 const Page: React.FC = () => {
+
+  const api_url = process.env.API_URL;
   const [formData, setState] = useState({
     username: "",
     first_name: "",
@@ -27,7 +29,7 @@ const Page: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch(api_url+'/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +78,7 @@ const Page: React.FC = () => {
       
 
       // Send the signup data to your API
-      const response = await fetch('http://localhost:8000/api/signup', {
+      const response = await fetch(api_url+'/api/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
