@@ -39,8 +39,20 @@ services:
       context: ./backend
     ports:
       - "8080:8080"
-    environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/dbname?sslmode=disable # Adjust for your app.env setup
+    env_file:
+      - ./backend/app.env
+    depends_on:
+      - postgres
+      - migrate
+  
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations
+    entrypoint: [
+      "sh", "-c",
+      "migrate -path=/migrations -database postgresql://root:secret@localhost:5432/play4good_db?sslmode=disable up"
+    ]
     depends_on:
       - postgres
 
