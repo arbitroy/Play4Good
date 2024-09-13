@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 
 const Page: React.FC = () => {
 
-  const api_url = process.env.API_URL;
+  const api_url = process.env.NEXT_PUBLIC_API_URL;
   const [formData, setState] = useState({
     username: "",
     first_name: "",
@@ -74,11 +74,12 @@ const Page: React.FC = () => {
 
   const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
+    console.log("API URL:", api_url);
     try {
       
 
       // Send the signup data to your API
-      const response = await fetch(api_url+'/api/signup', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,3 @@
-
-
 services:
   # PostgreSQL service
   postgres:
@@ -30,8 +28,8 @@ services:
       context: ./frontend/play4good-webapp
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://go-backend:8080 # Points to Go backend service
+    env_file:
+      - /frontend/play4good-webapp/.env.docker
     depends_on:
       - go-backend
 
