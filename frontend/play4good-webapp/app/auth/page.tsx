@@ -50,6 +50,7 @@ const Page: React.FC = () => {
         // Set JWT as a cookie
         document.cookie = `token=${data.token};path=/; max-age=3600; SameSite=Strict`;
         sessionStorage.setItem("id", data.id);
+        sessionStorage.setItem("username", data.username);
         sessionStorage.setItem("email", data.email);
         sessionStorage.setItem("first_name", data.first_name.String);
         sessionStorage.setItem("last_name", data.last_name.String);
@@ -101,7 +102,7 @@ const Page: React.FC = () => {
         // Set JWT as a cookie
         document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
         sessionStorage.setItem("id", data.id);
-        sessionStorage.setItem("email", data.email);
+        sessionStorage.setItem("username", data.username);
         sessionStorage.setItem("first_name", data.first_name.String);
         sessionStorage.setItem("last_name", data.last_name.String);
         sessionStorage.setItem("avatarUrl", data.avatarUrl.String);

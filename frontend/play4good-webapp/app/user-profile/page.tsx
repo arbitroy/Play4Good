@@ -1,16 +1,66 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation'; // Import from 'next/navigation'
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Modal from './Modal';
 import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
+import useStorage from '../utils/useStorage';
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
 };
 
 const Page = ({ searchParams }: SearchParamProps) => {
+    const { getItem } = useStorage();
+    const [user, setUser] = useState({
+        username: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        avatarUrl: '',
+    });
+
+    // Load data from localStorage on the client side
+    useEffect(() => {
+        setUser({
+            username: getItem('username') || '',
+            firstName: getItem('first_name') || '',
+            lastName: getItem('last_name') || '',
+            email: getItem('email') || '',
+            avatarUrl: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const [formData, setFormData] = useState({
+        username: user.username || '',
+        first_name: user.firstName || '',
+        last_name: user.lastName || '',
+        email: user.email || '',
+        avatarUrl: user.avatarUrl || ''
+    });
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData((prevData) => ({
+                    ...prevData,
+                    avatarUrl: reader.result as string, // Store the base64 encoded image
+                }));
+            };
+            reader.readAsDataURL(file); // Convert file to base64 URL
+        }
+    };
+
     const router = useRouter();
+
+    const handleChange = (e: { target: { name: any; value: any; }; }) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        })
+    }
     const searchParamsObj = useSearchParams(); // Hook to get current query params
     const show = searchParams?.show === 'true'; // Check if "show" param is "true"
 
@@ -30,12 +80,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
         router.push(`${currentPath}?${updatedQuery.toString()}`); // Update URL without changing path
     };
 
-    const user = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        avatar: 'https://bootdey.com/img/Content/avatar/avatar7.png',
-    };
+    
 
     return (
         <section className={`${styles.section}`} id="about">
@@ -76,7 +121,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                     <div className={styles.colLg6}>
                         <div className={styles.aboutAvatar}>
                             <Image
-                                src={user.avatar}
+                                src={user.avatarUrl}
                                 alt="Avatar"
                                 width={350}
                                 height={350}
@@ -90,14 +135,80 @@ const Page = ({ searchParams }: SearchParamProps) => {
             {/* Modal is conditionally rendered based on the "show" parameter */}
             {show && (
                 <Modal onClose={closeModal}>
-                    <div>
-                        <h2>Edit Profile</h2>
-                        <p>Here you can edit your profile information.</p>
+                    <div className={styles.modalContent}>
+                        <h2 className={styles.modalHeader}>Edit Profile</h2>
+                        <p className={styles.modalDescription}>
+                            Here you can edit your profile information.
+                        </p>
+                        <div className={styles.modalAvatar}>
+                            <Image
+                                src={formData.avatarUrl || user.avatarUrl} // Display the selected image or default one
+                                alt="Avatar"
+                                width={200}
+                                height={200}
+                                style={{ borderRadius: '100%' }}
+                            />
+                        </div>
+
+                        <form className={styles.modalForm}>
+                            <label className={styles.fileInputLabel}>
+                                Choose Profile Picture
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className={styles.fileInput}
+                                />
+                            </label>
+
+                            <input
+                                type="text"
+                                placeholder="Username"
+                                name="username"
+                                value={formData.username || user.username}
+                                onChange={handleChange}
+                                required
+                                className={styles.modalInput}
+                            />
+                            <input
+                                type="text"
+                                placeholder="First Name"
+                                name="first_name"
+                                value={formData.first_name || user.firstName}
+                                onChange={handleChange}
+                                required
+                                className={styles.modalInput}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Last Name"
+                                name="last_name"
+                                value={formData.last_name || user.lastName}
+                                onChange={handleChange}
+                                required
+                                className={styles.modalInput}
+                            />
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                name="email"
+                                value={formData.email || user.email}
+                                onChange={handleChange}
+                                required
+                                className={styles.modalInput}
+                            />
+                            <button type="submit" className={styles.modalButton}>
+                                Submit
+                            </button>
+                        </form>
                     </div>
                 </Modal>
+
             )}
         </section>
     );
 };
 
 export default Page;
+
+
