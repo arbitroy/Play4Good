@@ -49,6 +49,7 @@ const Page: React.FC = () => {
       if (data.token) {
         // Set JWT as a cookie
         document.cookie = `token=${data.token};path=/; max-age=3600; SameSite=Strict`;
+        sessionStorage.setItem("id", data.id);
         sessionStorage.setItem("email", data.email);
         sessionStorage.setItem("first_name", data.first_name.String);
         sessionStorage.setItem("last_name", data.last_name.String);
@@ -74,9 +75,7 @@ const Page: React.FC = () => {
 
   const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
-    console.log("API URL:", api_url);
     try {
-      
 
       // Send the signup data to your API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/signup`, {
@@ -101,6 +100,11 @@ const Page: React.FC = () => {
       if (token) {
         // Set JWT as a cookie
         document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
+        sessionStorage.setItem("id", data.id);
+        sessionStorage.setItem("email", data.email);
+        sessionStorage.setItem("first_name", data.first_name.String);
+        sessionStorage.setItem("last_name", data.last_name.String);
+        sessionStorage.setItem("avatarUrl", data.avatarUrl.String);
 
         console.log("Signup successful!");
         setState({

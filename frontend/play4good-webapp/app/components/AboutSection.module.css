@@ -102,3 +102,25 @@
 .darkColor {
     color: #20247b;
 }
+
+.editIcon {
+    position: absolute;
+    top: 0;
+    left: 145px;
+    font-size: 15px;
+    cursor: pointer;
+    color: #666;
+    background-color: aliceblue;
+    transition: color 0.3s ease;
+    padding: 8px;
+    border-radius: 100%;
+}
+
+.editIcon:hover {
+    color: #333;
+}
+
+.aboutText {
+    position: relative; /* Ensure the parent container is relatively positioned */
+    padding-right: 20px; /* Ensure some space for the icon */
+}

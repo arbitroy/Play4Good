@@ -1,27 +1,41 @@
-'use client'
+'use client';
+import { useRouter, useSearchParams } from 'next/navigation'; // Import from 'next/navigation'
+import { useEffect, useState } from 'react';
+import Modal from './Modal';
 import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
-import { useEffect, useState } from 'react';
-import useStorage from '../utils/useStorage';
 
-const Page = () => {
-    const { getItem } = useStorage();
-    const [user, setUser] = useState({
-        firstName: '',
-        lastName: '',
-        email: '',
-        avatar: '',
-    });
+type SearchParamProps = {
+    searchParams: Record<string, string> | null | undefined;
+};
 
-    // Load data from localStorage on the client side
-    useEffect(() => {
-        setUser({
-            firstName: getItem('first_name') || '',
-            lastName: getItem('last_name') || '',
-            email: getItem('email') || '',
-            avatar: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
-        });
-    }, [getItem]);
+const Page = ({ searchParams }: SearchParamProps) => {
+    const router = useRouter();
+    const searchParamsObj = useSearchParams(); // Hook to get current query params
+    const show = searchParams?.show === 'true'; // Check if "show" param is "true"
+
+    const openModal = () => {
+        const currentPath = window.location.pathname; // Get current path (e.g., "/user-profile")
+        const updatedQuery = new URLSearchParams(searchParamsObj); // Use current query params
+        updatedQuery.set('show', 'true'); // Add or update "show=true"
+
+        router.push(`${currentPath}?${updatedQuery.toString()}`); // Push the updated query without losing the path
+    };
+
+    const closeModal = () => {
+        const currentPath = window.location.pathname; // Get current path
+        const updatedQuery = new URLSearchParams(searchParamsObj); // Get current query params
+        updatedQuery.delete('show'); // Remove the "show" query parameter
+
+        router.push(`${currentPath}?${updatedQuery.toString()}`); // Update URL without changing path
+    };
+
+    const user = {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        avatar: 'https://bootdey.com/img/Content/avatar/avatar7.png',
+    };
 
     return (
         <section className={`${styles.section}`} id="about">
@@ -29,9 +43,15 @@ const Page = () => {
                 <div className={`${styles.row} ${styles.flexRowReverse}`}>
                     <div className={styles.colLg6}>
                         <div className={`${styles.aboutText} ${styles.goTo}`}>
-                            <h3 className={styles.darkColor}>Profile</h3>
+                            <h3 className={styles.darkColor}>
+                                Profile
+                                {/* Pencil icon to open the modal */}
+                                <span className={styles.editIcon}>
+                                    <i className="fas fa-pencil-alt" onClick={openModal}></i>
+                                </span>
+                            </h3>
                             <h6 className={`${styles.themeColor} ${styles.lead}`}>
-                                A Lead UX &amp; UI designer based in Canada
+                                A team player &amp; avid supporr of charity
                             </h6>
                             <div className={styles.rowAboutList}>
                                 <div className={styles.colMd6}>
@@ -58,14 +78,24 @@ const Page = () => {
                             <Image
                                 src={user.avatar}
                                 alt="Avatar"
-                                width={350} // Adjust width as needed
-                                height={350} // Adjust height as needed
-                                style={{ borderRadius: "100%" }}
+                                width={350}
+                                height={350}
+                                style={{ borderRadius: '100%' }}
                             />
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Modal is conditionally rendered based on the "show" parameter */}
+            {show && (
+                <Modal onClose={closeModal}>
+                    <div>
+                        <h2>Edit Profile</h2>
+                        <p>Here you can edit your profile information.</p>
+                    </div>
+                </Modal>
+            )}
         </section>
     );
 };
