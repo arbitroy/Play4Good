@@ -28,6 +28,19 @@ type FormData = {
     avatarUrl: string;
 };
 
+
+type ApiResponse = {
+    id: number;
+    username: string;
+    email: string;
+    password_hash: string;
+    first_name: { String: string; Valid: boolean };
+    last_name: { String: string; Valid: boolean };
+    avatar_url: { String: string; Valid: boolean };
+    created_at: { Time: string; Valid: boolean };
+    updated_at: { Time: string; Valid: boolean };
+};
+
 const Page = ({ searchParams }: SearchParamProps) => {
     const api_url = process.env.NEXT_PUBLIC_API_URL;
     const { getItem, setItem } = useStorage();
@@ -128,18 +141,26 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            const updatedUser = {
-                id: data.id,
+            const data: ApiResponse = await response.json();
+            const updatedUser: User = {
+                id: data.id.toString(),
                 username: data.username,
-                firstName: data.first_name.String,
-                lastName: data.last_name.String,
+                firstName: data.first_name.Valid ? data.first_name.String : '',
+                lastName: data.last_name.Valid ? data.last_name.String : '',
                 email: data.email,
-                avatarUrl: data.avatarUrl.String || '',
+                avatarUrl: data.avatar_url.Valid ? data.avatar_url.String : user.avatarUrl,
             };
 
             setUser(updatedUser);
-            Object.entries(updatedUser).forEach(([key, value]) => setItem(key, value));
+            
+            // Update localStorage
+            setItem('id', updatedUser.id);
+            setItem('username', updatedUser.username);
+            setItem('first_name', updatedUser.firstName);
+            setItem('last_name', updatedUser.lastName);
+            setItem('email', updatedUser.email);
+            setItem('avatarUrl', updatedUser.avatarUrl);
+
             setSuccessMessage('Profile updated successfully!');
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (error) {
