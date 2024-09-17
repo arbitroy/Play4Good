@@ -81,6 +81,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserByEmailStmt, err = db.PrepareContext(ctx, getUserByEmail); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByEmail: %w", err)
 	}
+	if q.getUserTokenByTokenStmt, err = db.PrepareContext(ctx, getUserTokenByToken); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserTokenByToken: %w", err)
+	}
 	if q.getUserTokenByUserIDStmt, err = db.PrepareContext(ctx, getUserTokenByUserID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserTokenByUserID: %w", err)
 	}
@@ -220,6 +223,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getUserByEmailStmt: %w", cerr)
 		}
 	}
+	if q.getUserTokenByTokenStmt != nil {
+		if cerr := q.getUserTokenByTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserTokenByTokenStmt: %w", cerr)
+		}
+	}
 	if q.getUserTokenByUserIDStmt != nil {
 		if cerr := q.getUserTokenByUserIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserTokenByUserIDStmt: %w", cerr)
@@ -343,6 +351,7 @@ type Queries struct {
 	getTeamStmt                *sql.Stmt
 	getUserStmt                *sql.Stmt
 	getUserByEmailStmt         *sql.Stmt
+	getUserTokenByTokenStmt    *sql.Stmt
 	getUserTokenByUserIDStmt   *sql.Stmt
 	listCausesStmt             *sql.Stmt
 	listDonationsStmt          *sql.Stmt
@@ -381,6 +390,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getTeamStmt:                q.getTeamStmt,
 		getUserStmt:                q.getUserStmt,
 		getUserByEmailStmt:         q.getUserByEmailStmt,
+		getUserTokenByTokenStmt:    q.getUserTokenByTokenStmt,
 		getUserTokenByUserIDStmt:   q.getUserTokenByUserIDStmt,
 		listCausesStmt:             q.listCausesStmt,
 		listDonationsStmt:          q.listDonationsStmt,

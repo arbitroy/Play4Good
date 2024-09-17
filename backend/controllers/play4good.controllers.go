@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	db "play4good-backend/db/sqlc"
@@ -27,6 +28,34 @@ func NewPlay4GoodController(db *db.Queries, ctx context.Context) *Play4GoodContr
 func errorResponse(err error) gin.H {
 	return gin.H{"error": err.Error()}
 }
+
+// Helper function to validate token and return associated user ID
+func (c *Play4GoodController) validateToken(ctx *gin.Context) ( error) {
+	// Extract the token from the Authorization header
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		return fmt.Errorf("authorization header required")
+	}
+
+	// Extract the token string
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Check the token in the database
+	userToken, err := c.db.GetUserTokenByToken(c.ctx, tokenString)
+	if err != nil {
+		return  fmt.Errorf("token not found")
+	}
+
+	// Check if the token is expired
+	if userToken.Expiry.Before(time.Now()) {
+		return fmt.Errorf("token expired")
+	}
+
+	// Return the user ID associated with the token
+	return  nil
+}
+
+
 
 func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
 	// Parse and validate the request body
@@ -245,18 +274,36 @@ func (c *Play4GoodController) GetUserByEmail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (c *Play4GoodController) UpdateUser(ctx *gin.Context) {
-	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
-	id := int32(id64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+func (c *Play4GoodController) UpdateUser(ctx *gin.Context) { 
+	// Extract the token from the Authorization header
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
 		return
 	}
 
-	var payload *schemas.UserUpdateRequest
+	// Extract the token string
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
+	// Parse and validate the token
+	userID, err := util.ParseToken(tokenString)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	// Get the user ID from the URL parameter and ensure it matches the token's user ID
+	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
+	id := int32(id64)
+	if err != nil || id != int32(userID) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized access"})
+		return
+	}
+
+	// Proceed with updating the user information
+	var payload *schemas.UserUpdateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -271,14 +318,20 @@ func (c *Play4GoodController) UpdateUser(ctx *gin.Context) {
 
 	user, err := c.db.UpdateUser(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, user)
 }
 
+
 func (c *Play4GoodController) DeleteUser(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -298,12 +351,21 @@ func (c *Play4GoodController) DeleteUser(ctx *gin.Context) {
 
 // Team Controllers
 func (c *Play4GoodController) CreateTeam(ctx *gin.Context) {
-	var payload *schemas.TeamCreateRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+	
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Parse the request payload
+	var payload *schemas.TeamCreateRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Create the team, associating it with the authenticated user (userID)
 	arg := db.CreateTeamParams{
 		Name:        payload.Name,
 		Description: sql.NullString{String: payload.Description, Valid: payload.Description != ""},
@@ -312,14 +374,20 @@ func (c *Play4GoodController) CreateTeam(ctx *gin.Context) {
 
 	team, err := c.db.CreateTeam(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create team"})
 		return
 	}
 
 	ctx.JSON(http.StatusOK, team)
 }
 
+
 func (c *Play4GoodController) GetTeam(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -339,6 +407,11 @@ func (c *Play4GoodController) GetTeam(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) UpdateTeam(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
 	if err != nil {
@@ -370,6 +443,11 @@ func (c *Play4GoodController) UpdateTeam(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) DeleteTeam(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -389,6 +467,11 @@ func (c *Play4GoodController) DeleteTeam(ctx *gin.Context) {
 
 // Cause Controllers
 func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	var payload *schemas.CauseCreateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -423,6 +506,11 @@ func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) GetCause(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -441,6 +529,11 @@ func (c *Play4GoodController) GetCause(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cause)
 }
 func (c *Play4GoodController) UpdateCause(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	id := int32(id64)
 	if err != nil {
@@ -483,6 +576,11 @@ func (c *Play4GoodController) UpdateCause(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cause)
 }
 func (c *Play4GoodController) DeleteCause(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -502,6 +600,11 @@ func (c *Play4GoodController) DeleteCause(ctx *gin.Context) {
 
 // Donation Controllers
 func (c *Play4GoodController) CreateDonation(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	var payload *schemas.DonationCreateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -538,6 +641,11 @@ func (c *Play4GoodController) CreateDonation(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) GetDonation(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -558,6 +666,11 @@ func (c *Play4GoodController) GetDonation(ctx *gin.Context) {
 
 // AddUserToTeam adds a user to a team
 func (c *Play4GoodController) AddUserToTeam(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	var payload *schemas.UserTeamCreateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -581,6 +694,11 @@ func (c *Play4GoodController) AddUserToTeam(ctx *gin.Context) {
 
 // UpdateUserTeamRole updates a user's role in a team
 func (c *Play4GoodController) UpdateUserTeamRole(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -616,6 +734,11 @@ func (c *Play4GoodController) UpdateUserTeamRole(ctx *gin.Context) {
 
 // RemoveUserFromTeam removes a user from a team
 func (c *Play4GoodController) RemoveUserFromTeam(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	userID, err := strconv.ParseInt(ctx.Param("userId"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -644,6 +767,11 @@ func (c *Play4GoodController) RemoveUserFromTeam(ctx *gin.Context) {
 
 // Leaderboard Controllers
 func (c *Play4GoodController) CreateLeaderboard(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	var payload *schemas.LeaderboardCreateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -673,6 +801,11 @@ func (c *Play4GoodController) CreateLeaderboard(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) GetLeaderboard(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	id64, err := strconv.ParseInt(ctx.Param("id"), 10, 32)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -692,6 +825,11 @@ func (c *Play4GoodController) GetLeaderboard(ctx *gin.Context) {
 }
 
 func (c *Play4GoodController) UpdateLeaderboardEntry(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
 	var payload *schemas.LeaderboardEntryUpdateRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))

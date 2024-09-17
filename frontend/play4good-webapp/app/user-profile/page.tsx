@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation'; // Import from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react';
+import { FormEventHandler, FormHTMLAttributes, useCallback, useEffect, useState } from 'react';
 import Modal from './Modal';
 import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
@@ -11,8 +11,10 @@ type SearchParamProps = {
 };
 
 const Page = ({ searchParams }: SearchParamProps) => {
+    const api_url = process.env.NEXT_PUBLIC_API_URL;
     const { getItem } = useStorage();
     const [user, setUser] = useState({
+        id: '',
         username: '',
         firstName: '',
         lastName: '',
@@ -23,6 +25,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
     // Load data from localStorage on the client side
     useEffect(() => {
         setUser({
+            id : getItem('id') || '',
             username: getItem('username') || '',
             firstName: getItem('first_name') || '',
             lastName: getItem('last_name') || '',
@@ -52,6 +55,29 @@ const Page = ({ searchParams }: SearchParamProps) => {
             reader.readAsDataURL(file); // Convert file to base64 URL
         }
     };
+
+    async function updateProfile() {
+        const requestOptions = {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:  JSON.stringify({
+                ...formData
+            }),
+        };
+        const response = await fetch(api_url+'/api/users/'+ user.id, requestOptions);
+        const data = await response.json();
+        setUser({
+            id : data.id,
+            username: data.username,
+            firstName: data.first_name.String,
+            lastName: data.last_name.String,
+            email: data.email,
+            avatarUrl: data.avatarUrl.String,
+        });
+    }
+    const handleSubmit = () =>{
+        updateProfile();
+    }
 
     const router = useRouter();
 
@@ -150,7 +176,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                             />
                         </div>
 
-                        <form className={styles.modalForm}>
+                        <form className={styles.modalForm} onSubmit={handleSubmit}>
                             <label className={styles.fileInputLabel}>
                                 Choose Profile Picture
                                 <input

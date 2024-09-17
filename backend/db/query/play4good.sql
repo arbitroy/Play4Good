@@ -148,6 +148,14 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT 1;
 
+
+-- name: GetUserTokenByToken :one
+SELECT id, user_id, token, expiry, created_at, updated_at
+FROM user_tokens
+WHERE token = $1
+ORDER BY created_at DESC
+LIMIT 1;
+
 -- name: DeleteUserToken :exec
 DELETE FROM user_tokens
 WHERE user_id = $1

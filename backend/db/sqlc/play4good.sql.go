@@ -453,6 +453,28 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const getUserTokenByToken = `-- name: GetUserTokenByToken :one
+SELECT id, user_id, token, expiry, created_at, updated_at
+FROM user_tokens
+WHERE token = $1
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetUserTokenByToken(ctx context.Context, token string) (UserToken, error) {
+	row := q.queryRow(ctx, q.getUserTokenByTokenStmt, getUserTokenByToken, token)
+	var i UserToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Token,
+		&i.Expiry,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserTokenByUserID = `-- name: GetUserTokenByUserID :one
 SELECT id, user_id, token, expiry, created_at, updated_at
 FROM user_tokens

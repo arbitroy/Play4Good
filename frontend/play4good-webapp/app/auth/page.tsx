@@ -103,6 +103,7 @@ const Page: React.FC = () => {
         document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
         sessionStorage.setItem("id", data.id);
         sessionStorage.setItem("username", data.username);
+        sessionStorage.setItem("email", data.email);
         sessionStorage.setItem("first_name", data.first_name.String);
         sessionStorage.setItem("last_name", data.last_name.String);
         sessionStorage.setItem("avatarUrl", data.avatarUrl.String);
