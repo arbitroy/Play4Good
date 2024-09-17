@@ -125,6 +125,7 @@ func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"id":         user.ID,
 		"first_name": user.FirstName,
+		"username":   user.Username,
 		"last_name":  user.LastName,
 		"email":      user.Email,
 		"avatarUrl":  user.AvatarUrl,
@@ -167,6 +168,7 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
         ctx.JSON(http.StatusOK, gin.H{
 			"id":         user.ID,
 			"first_name": user.FirstName,
+			"username":   user.Username,
 			"last_name":  user.LastName,
 			"email":      user.Email,
 			"avatarUrl":  user.AvatarUrl,

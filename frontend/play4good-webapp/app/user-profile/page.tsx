@@ -1,19 +1,39 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation'; // Import from 'next/navigation'
-import { FormEventHandler, FormHTMLAttributes, useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
 import useStorage from '../utils/useStorage';
+import getCookie from '../utils/cookieHandler';
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
 };
 
+type User = {
+    id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatarUrl: string;
+};
+
+type FormData = {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatarUrl: string;
+};
+
 const Page = ({ searchParams }: SearchParamProps) => {
     const api_url = process.env.NEXT_PUBLIC_API_URL;
-    const { getItem } = useStorage();
-    const [user, setUser] = useState({
+    const { getItem, setItem } = useStorage();
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [user, setUser] = useState<User>({
         id: '',
         username: '',
         firstName: '',
@@ -22,91 +42,142 @@ const Page = ({ searchParams }: SearchParamProps) => {
         avatarUrl: '',
     });
 
-    // Load data from localStorage on the client side
+    const [formData, setFormData] = useState<FormData>({
+        username: '',
+        first_name: '',
+        last_name: '',
+        email: '',
+        avatarUrl: '',
+    });
+
+    const router = useRouter();
+    const searchParamsObj = useSearchParams();
+    const show = searchParams?.show === 'true';
+
     useEffect(() => {
-        setUser({
-            id : getItem('id') || '',
+        const loadedUser = {
+            id: getItem('id') || '',
             username: getItem('username') || '',
             firstName: getItem('first_name') || '',
             lastName: getItem('last_name') || '',
             email: getItem('email') || '',
             avatarUrl: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
+        };
+        setUser(loadedUser);
+        setFormData({
+            username: loadedUser.username,
+            first_name: loadedUser.firstName,
+            last_name: loadedUser.lastName,
+            email: loadedUser.email,
+            avatarUrl: loadedUser.avatarUrl,
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    const [formData, setFormData] = useState({
-        username: user.username || '',
-        first_name: user.firstName || '',
-        last_name: user.lastName || '',
-        email: user.email || '',
-        avatarUrl: user.avatarUrl || ''
-    });
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setError('File size should not exceed 5MB');
+                return;
+            }
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData((prevData) => ({
                     ...prevData,
-                    avatarUrl: reader.result as string, // Store the base64 encoded image
+                    avatarUrl: reader.result as string,
                 }));
             };
-            reader.readAsDataURL(file); // Convert file to base64 URL
+            reader.readAsDataURL(file);
         }
     };
 
-    async function updateProfile() {
-        const requestOptions = {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body:  JSON.stringify({
-                ...formData
-            }),
-        };
-        const response = await fetch(api_url+'/api/users/'+ user.id, requestOptions);
-        const data = await response.json();
-        setUser({
-            id : data.id,
-            username: data.username,
-            firstName: data.first_name.String,
-            lastName: data.last_name.String,
-            email: data.email,
-            avatarUrl: data.avatarUrl.String,
-        });
-    }
-    const handleSubmit = () =>{
+    const validateForm = (): boolean => {
+        if (!formData.username.trim()) {
+            setError('Username is required');
+            return false;
+        }
+        if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
+            setError('Valid email is required');
+            return false;
+        }
+        return true;
+    };
+
+    const updateProfile = async () => {
+        if (!validateForm()) return;
+
+        try {
+            const token = getCookie('token');
+            if (!token) {
+                setError('Authentication token is missing. Please log in again.');
+                return;
+            }
+
+            const response = await fetch(`${api_url}/api/users/${user.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const updatedUser = {
+                id: data.id,
+                username: data.username,
+                firstName: data.first_name.String,
+                lastName: data.last_name.String,
+                email: data.email,
+                avatarUrl: data.avatarUrl.String || '',
+            };
+
+            setUser(updatedUser);
+            Object.entries(updatedUser).forEach(([key, value]) => setItem(key, value));
+            setSuccessMessage('Profile updated successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (error) {
+            if (error instanceof Error) {
+                setError(`Failed to update profile: ${error.message}`);
+            } else {
+                setError('An unexpected error occurred');
+            }
+            console.error('There was an error!', error);
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
         updateProfile();
-    }
+    };
 
-    const router = useRouter();
-
-    const handleChange = (e: { target: { name: any; value: any; }; }) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        })
-    }
-    const searchParamsObj = useSearchParams(); // Hook to get current query params
-    const show = searchParams?.show === 'true'; // Check if "show" param is "true"
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prevData) => ({
+            ...prevData,
+            [name]: value,
+        }));
+    };
 
     const openModal = () => {
-        const currentPath = window.location.pathname; // Get current path (e.g., "/user-profile")
-        const updatedQuery = new URLSearchParams(searchParamsObj); // Use current query params
-        updatedQuery.set('show', 'true'); // Add or update "show=true"
-
-        router.push(`${currentPath}?${updatedQuery.toString()}`); // Push the updated query without losing the path
+        const currentPath = window.location.pathname;
+        const updatedQuery = new URLSearchParams(searchParamsObj);
+        updatedQuery.set('show', 'true');
+        router.push(`${currentPath}?${updatedQuery.toString()}`);
     };
 
     const closeModal = () => {
-        const currentPath = window.location.pathname; // Get current path
-        const updatedQuery = new URLSearchParams(searchParamsObj); // Get current query params
-        updatedQuery.delete('show'); // Remove the "show" query parameter
-
-        router.push(`${currentPath}?${updatedQuery.toString()}`); // Update URL without changing path
+        const currentPath = window.location.pathname;
+        const updatedQuery = new URLSearchParams(searchParamsObj);
+        updatedQuery.delete('show');
+        router.push(`${currentPath}?${updatedQuery.toString()}`);
     };
-
-    
 
     return (
         <section className={`${styles.section}`} id="about">
@@ -116,13 +187,12 @@ const Page = ({ searchParams }: SearchParamProps) => {
                         <div className={`${styles.aboutText} ${styles.goTo}`}>
                             <h3 className={styles.darkColor}>
                                 Profile
-                                {/* Pencil icon to open the modal */}
                                 <span className={styles.editIcon}>
                                     <i className="fas fa-pencil-alt" onClick={openModal}></i>
                                 </span>
                             </h3>
                             <h6 className={`${styles.themeColor} ${styles.lead}`}>
-                                A team player &amp; avid supporr of charity
+                                A team player &amp; avid supporter of charity
                             </h6>
                             <div className={styles.rowAboutList}>
                                 <div className={styles.colMd6}>
@@ -158,7 +228,6 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 </div>
             </div>
 
-            {/* Modal is conditionally rendered based on the "show" parameter */}
             {show && (
                 <Modal onClose={closeModal}>
                     <div className={styles.modalContent}>
@@ -168,13 +237,16 @@ const Page = ({ searchParams }: SearchParamProps) => {
                         </p>
                         <div className={styles.modalAvatar}>
                             <Image
-                                src={formData.avatarUrl || user.avatarUrl} // Display the selected image or default one
+                                src={formData.avatarUrl || user.avatarUrl}
                                 alt="Avatar"
                                 width={200}
                                 height={200}
                                 style={{ borderRadius: '100%' }}
                             />
                         </div>
+
+                        {error && <div className={styles.errorMessage}>{error}</div>}
+                        {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
 
                         <form className={styles.modalForm} onSubmit={handleSubmit}>
                             <label className={styles.fileInputLabel}>
@@ -191,7 +263,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 type="text"
                                 placeholder="Username"
                                 name="username"
-                                value={formData.username || user.username}
+                                value={formData.username}
                                 onChange={handleChange}
                                 required
                                 className={styles.modalInput}
@@ -200,25 +272,23 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 type="text"
                                 placeholder="First Name"
                                 name="first_name"
-                                value={formData.first_name || user.firstName}
+                                value={formData.first_name}
                                 onChange={handleChange}
-                                required
                                 className={styles.modalInput}
                             />
                             <input
                                 type="text"
                                 placeholder="Last Name"
                                 name="last_name"
-                                value={formData.last_name || user.lastName}
+                                value={formData.last_name}
                                 onChange={handleChange}
-                                required
                                 className={styles.modalInput}
                             />
                             <input
                                 type="email"
                                 placeholder="Email"
                                 name="email"
-                                value={formData.email || user.email}
+                                value={formData.email}
                                 onChange={handleChange}
                                 required
                                 className={styles.modalInput}
@@ -229,12 +299,9 @@ const Page = ({ searchParams }: SearchParamProps) => {
                         </form>
                     </div>
                 </Modal>
-
             )}
         </section>
     );
 };
 
 export default Page;
-
-
