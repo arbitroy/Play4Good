@@ -1,11 +1,11 @@
 'use client';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Modal from './Modal';
-import Image from 'next/image';
 import styles from '../components/AboutSection.module.css';
-import useStorage from '../utils/useStorage';
 import getCookie from '../utils/cookieHandler';
+import useStorage from '../utils/useStorage';
+import Modal from './Modal';
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
@@ -36,7 +36,7 @@ type ApiResponse = {
     password_hash: string;
     first_name: { String: string; Valid: boolean };
     last_name: { String: string; Valid: boolean };
-    avatar_url: { String: string; Valid: boolean };
+    avatarUrl: { String: string; Valid: boolean };
     created_at: { Time: string; Valid: boolean };
     updated_at: { Time: string; Valid: boolean };
 };
@@ -84,7 +84,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             email: loadedUser.email,
             avatarUrl: loadedUser.avatarUrl,
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,6 +135,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 },
                 body: JSON.stringify(formData),
             });
+            console.log("response:",JSON.stringify(formData));
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -142,17 +143,18 @@ const Page = ({ searchParams }: SearchParamProps) => {
             }
 
             const data: ApiResponse = await response.json();
+            console.log("response:",data);
             const updatedUser: User = {
                 id: data.id.toString(),
                 username: data.username,
                 firstName: data.first_name.Valid ? data.first_name.String : '',
                 lastName: data.last_name.Valid ? data.last_name.String : '',
                 email: data.email,
-                avatarUrl: data.avatar_url.Valid ? data.avatar_url.String : user.avatarUrl,
+                avatarUrl: data.avatarUrl.Valid ? data.avatarUrl.String : user.avatarUrl,
             };
 
             setUser(updatedUser);
-            
+
             // Update localStorage
             setItem('id', updatedUser.id);
             setItem('username', updatedUser.username);

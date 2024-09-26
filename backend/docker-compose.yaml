@@ -9,7 +9,7 @@ services:
       - db:/var/lib/postgresql/data
     env_file:
       - ./app.env
-
+      
   pgadmin:
     image: dpage/pgadmin4
     environment:

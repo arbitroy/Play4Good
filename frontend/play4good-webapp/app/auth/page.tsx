@@ -1,9 +1,9 @@
 'use client'
 
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { AuthFormContainer } from '../components/AuthFormContainer';
 import { SocialIcon } from '../components/SocialIcon';
-import { useRouter } from 'next/navigation';
 
 
 const Page: React.FC = () => {
@@ -29,7 +29,7 @@ const Page: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch(api_url+'/api/login', {
+      const response = await fetch(api_url + '/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
