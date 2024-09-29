@@ -25,6 +25,7 @@ const Navbar: React.FC = () => {
                 <li><Link href="/about">About</Link></li>
                 <li><Link href="/auth">Login/Signup</Link></li>
                 <li><Link href="/user-profile">Profile</Link></li>
+                <li><Link href="/dashboard">Dashboard</Link></li>
             </ul>
         </nav>
     );

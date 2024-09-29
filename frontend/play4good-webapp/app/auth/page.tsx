@@ -45,6 +45,7 @@ const Page: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log("response login:",data)
 
       if (data.token) {
         // Set JWT as a cookie

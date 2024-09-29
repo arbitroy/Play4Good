@@ -6,6 +6,7 @@ import styles from '../components/AboutSection.module.css';
 import getCookie from '../utils/cookieHandler';
 import useStorage from '../utils/useStorage';
 import Modal from './Modal';
+import { compressImage } from '../utils/compressImage';
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
@@ -17,7 +18,7 @@ type User = {
     firstName: string;
     lastName: string;
     email: string;
-    avatarUrl: string;
+    avatar_url: string;
 };
 
 type FormData = {
@@ -25,7 +26,7 @@ type FormData = {
     first_name: string;
     last_name: string;
     email: string;
-    avatarUrl: string;
+    avatar_url: string;
 };
 
 
@@ -36,7 +37,7 @@ type ApiResponse = {
     password_hash: string;
     first_name: { String: string; Valid: boolean };
     last_name: { String: string; Valid: boolean };
-    avatarUrl: { String: string; Valid: boolean };
+    avatar_url: { String: string; Valid: boolean };
     created_at: { Time: string; Valid: boolean };
     updated_at: { Time: string; Valid: boolean };
 };
@@ -52,7 +53,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
         firstName: '',
         lastName: '',
         email: '',
-        avatarUrl: '',
+        avatar_url: '',
     });
 
     const [formData, setFormData] = useState<FormData>({
@@ -60,7 +61,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
         first_name: '',
         last_name: '',
         email: '',
-        avatarUrl: '',
+        avatar_url: '',
     });
 
     const router = useRouter();
@@ -74,7 +75,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             firstName: getItem('first_name') || '',
             lastName: getItem('last_name') || '',
             email: getItem('email') || '',
-            avatarUrl: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
+            avatar_url: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
         };
         setUser(loadedUser);
         setFormData({
@@ -82,28 +83,32 @@ const Page = ({ searchParams }: SearchParamProps) => {
             first_name: loadedUser.firstName,
             last_name: loadedUser.lastName,
             email: loadedUser.email,
-            avatarUrl: loadedUser.avatarUrl,
+            avatar_url: loadedUser.avatar_url,
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 5 * 1024 * 1024) {
+            if (file.size > 5 * 1024 * 1024) { // Check if file size exceeds 5MB
                 setError('File size should not exceed 5MB');
                 return;
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
+    
+            try {
+                const compressedImageUrl = await compressImage(file, 0.8); // Compress the image
                 setFormData((prevData) => ({
                     ...prevData,
-                    avatarUrl: reader.result as string,
+                    avatar_url: compressedImageUrl,
                 }));
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                setError('Image compression failed');
+                console.error('Image compression error:', error);
+            }
         }
     };
+    
 
     const validateForm = (): boolean => {
         if (!formData.username.trim()) {
@@ -135,7 +140,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 },
                 body: JSON.stringify(formData),
             });
-            console.log("response:",JSON.stringify(formData));
+            console.log("request:",JSON.stringify(formData));
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -150,7 +155,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 firstName: data.first_name.Valid ? data.first_name.String : '',
                 lastName: data.last_name.Valid ? data.last_name.String : '',
                 email: data.email,
-                avatarUrl: data.avatarUrl.Valid ? data.avatarUrl.String : user.avatarUrl,
+                avatar_url: data.avatar_url.Valid ? data.avatar_url.String : user.avatar_url,
             };
 
             setUser(updatedUser);
@@ -161,7 +166,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             setItem('first_name', updatedUser.firstName);
             setItem('last_name', updatedUser.lastName);
             setItem('email', updatedUser.email);
-            setItem('avatarUrl', updatedUser.avatarUrl);
+            setItem('avatarUrl', updatedUser.avatar_url);
 
             setSuccessMessage('Profile updated successfully!');
             setTimeout(() => setSuccessMessage(''), 3000);
@@ -240,7 +245,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                     <div className={styles.colLg6}>
                         <div className={styles.aboutAvatar}>
                             <Image
-                                src={user.avatarUrl}
+                                src={user.avatar_url}
                                 alt="Avatar"
                                 width={350}
                                 height={350}
@@ -260,7 +265,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                         </p>
                         <div className={styles.modalAvatar}>
                             <Image
-                                src={formData.avatarUrl || user.avatarUrl}
+                                src={formData.avatar_url || user.avatar_url}
                                 alt="Avatar"
                                 width={200}
                                 height={200}

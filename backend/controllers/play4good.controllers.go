@@ -201,6 +201,7 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 		"id":         user.ID,
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
+		"username":   user.Username,
 		"email":      user.Email,
 		"avatarUrl":  user.AvatarUrl,
 		"token":      tokenString,
