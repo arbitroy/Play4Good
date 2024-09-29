@@ -140,7 +140,6 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 },
                 body: JSON.stringify(formData),
             });
-            console.log("request:",JSON.stringify(formData));
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -148,7 +147,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             }
 
             const data: ApiResponse = await response.json();
-            console.log("response:",data);
+
             const updatedUser: User = {
                 id: data.id.toString(),
                 username: data.username,
