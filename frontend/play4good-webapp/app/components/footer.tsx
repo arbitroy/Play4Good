@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
                     </nav>
                 </div>
                 <div className="mt-8 text-center text-blue-300">
-                    <p>&copy; 2023 Play4Good. All rights reserved.</p>
+                    <p>&copy; 2024 Play4Good. All rights reserved.</p>
                 </div>
             </div>
         </footer>

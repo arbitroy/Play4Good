@@ -26,7 +26,6 @@ const Navbar: React.FC = () => {
             </div>
             <ul className={`md:flex md:items-center ${isOpen ? 'flex' : 'hidden'} flex-col md:flex-row absolute md:static top-16 left-0 w-full md:w-auto bg-gray-800 md:bg-transparent p-4 md:p-0`}>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/" className="text-white no-underline">Home</Link></li>
-                <li className="my-2 md:my-0 md:ml-4"><Link href="/about" className="text-white no-underline">About</Link></li>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/auth" className="text-white no-underline">Login/Signup</Link></li>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/user-profile" className="text-white no-underline">Profile</Link></li>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/dashboard" className="text-white no-underline">Dashboard</Link></li>
