@@ -206,7 +206,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
     };
 
     return (
-        <section className="py-5 relative text-white" id="about">
+        <section className="py-8 relative text-white" id="about">
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-wrap items-center flex-row-reverse">
                     <div className="w-full lg:w-1/2">
