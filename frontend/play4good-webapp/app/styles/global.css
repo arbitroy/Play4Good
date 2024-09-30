@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply text-[#3E3F3E] bg-[#03011f] font-montserrat;
+        line-height: 1.5;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply leading-tight;
+    }
+
+    h1 {
+        @apply text-4xl;
+    }
+
+    h2 {
+        @apply text-3xl;
+    }
+
+    h3 {
+        @apply text-2xl;
+    }
+
+    h4 {
+        @apply text-xl;
+    }
+
+    h5 {
+        @apply text-lg;
+    }
+
+    h6 {
+        @apply text-base;
+    }
+
+    p {
+        @apply mb-4;
+    }
+
+    a {
+        @apply text-[#3498db] no-underline transition-colors duration-300 ease-in-out;
+    }
+
+    a:hover {
+        @apply text-[#2980b9];
+    }
+}
+
+@layer components {
+    .button {
+        @apply inline-block relative rounded-lg text-transparent bg-clip-text font-nunito py-3 px-8 text-base font-bold cursor-pointer transition-all duration-500 ease-in-out;
+    }
+
+    .button:hover {
+        @apply text-shadow-white;
+    }
+
+    .button::before,
+    .button::after {
+        @apply content-[''] block absolute inset-0 z-[-1] rounded-[inherit] transition-all duration-500;
+    }
+
+    .button::after {
+        @apply inset-[2px] rounded-lg bg-white;
+    }
+
+    .explore,
+    .explore::before,
+    .close-btn,
+    .close-btn::before {
+        @apply bg-gradient-to-tr from-[#FFC107] to-[#FF5722];
+    }
+}
+
+@layer utilities {
+    .text-shadow-white {
+        text-shadow: 0px 0px 0px rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* Custom styles that don't have direct Tailwind equivalents */
+@layer base {
+
+    input,
+    textarea,
+    select {
+        font-family: inherit;
+        font-size: inherit;
+    }
+
+    ul,
+    ol {
+        @apply mb-4 pl-6;
+    }
+
+    table {
+        @apply w-full border-collapse mb-4;
+    }
+
+    th,
+    td {
+        @apply p-2 border border-gray-300;
+    }
+
+    img {
+        @apply max-w-full h-auto;
+    }
+}
+
+/* Utility classes */
+@layer utilities {
+    .sr-only {
+        @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+@layer base {
+    :focus-visible {
+        @apply outline-2 outline-[#3498db] outline-offset-2;
+    }
+}
+
+/* Responsive typography */
+@media (max-width: 480px) {
+    html {
+        font-size: 14px;
+    }
+}
