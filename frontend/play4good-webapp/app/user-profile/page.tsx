@@ -45,7 +45,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
     const api_url = process.env.NEXT_PUBLIC_API_URL;
     const { getItem, setItem } = useStorage();
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('Updated Successfully');
     const [user, setUser] = useState<User>({
         id: '',
         username: '',

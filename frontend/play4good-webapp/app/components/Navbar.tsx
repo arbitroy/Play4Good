@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { Heart } from 'lucide-react';
 
 const Navbar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -11,11 +12,12 @@ const Navbar: React.FC = () => {
 
     return (
         <nav className="flex justify-between items-center p-4 md:p-8 text-white">
-            <div className="text-2xl">
-                <Link href="/" className="text-white no-underline">Play4Good</Link>
+            <div className="flex items-center space-x-2">
+                <Heart className="w-8 h-8 text-blue-600" />
+                <span className="text-2xl font-bold text-blue-900">Play4Good</span>
             </div>
-            <div 
-                className={`flex flex-col cursor-pointer md:hidden ${isOpen ? 'open' : ''}`} 
+            <div
+                className={`flex flex-col cursor-pointer md:hidden ${isOpen ? 'open' : ''}`}
                 onClick={toggleMenu}
             >
                 <span className={`h-0.5 w-6 bg-white mb-1 transition-all duration-300 ease-in-out ${isOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
