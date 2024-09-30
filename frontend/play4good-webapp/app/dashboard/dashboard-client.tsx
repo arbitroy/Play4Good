@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from "react"
-import { Trophy, Users, Gift, Share2 } from "lucide-react"
+import { Trophy, Users, Gift, Share2} from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
-import { Card, CardContent, CardHeader } from "../components/ui/card"
 import { Progress } from "../components/ui/progress"
 import { Badge } from "../components/ui/badge"
-import { Avatar } from "../components/ui/avatar"
-import "./dashboard-client.css"
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
 
 interface DashboardClientProps {
     teamProgress: number
@@ -27,56 +26,62 @@ export function DashboardClient({
     const [progress, setProgress] = useState(initialTeamProgress)
 
     return (
-        <div className="dashboard-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Team Progress */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Team Progress</h2>
-                    <p className="card-description">Dream Team Donations</p>
+                    <CardTitle>Team Progress</CardTitle>
+                    <CardDescription>Dream Team Donations</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Progress value={progress} />
-                    <p className="progress-text">
+                    <Progress value={progress} className="mb-2" />
+                    <p className="text-sm text-muted-foreground">
                         ${progress * 10} raised of $1000 goal
                     </p>
-                    <div className="progress-actions">
+                    <div className="mt-4 flex justify-between items-center">
                         <Button variant="outline" size="sm" onClick={() => setProgress(Math.min(progress + 5, 100))}>
                             Add Donation
                         </Button>
                         <Badge variant="secondary">
-                            <Trophy className="badge-icon" />
+                            <Trophy className="w-4 h-4 mr-1" />
                             Top 10 Team
                         </Badge>
                     </div>
                 </CardContent>
             </Card>
 
+            {/* Achievements */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Achievements</h2>
-                    <p className="card-description">Your Impact</p>
+                    <CardTitle>Achievements</CardTitle>
+                    <CardDescription>Your Impact</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="achievements-list">
+                    <div className="flex flex-wrap gap-2">
                         {achievements.map((achievement, index) => (
                             <Badge key={index} variant="outline">{achievement}</Badge>
                         ))}
                     </div>
-                    <Button className="full-width" variant="outline">View All Achievements</Button>
+                    <Button className="w-full mt-4" variant="outline">View All Achievements</Button>
                 </CardContent>
             </Card>
 
+            {/* Leaderboard */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Leaderboard</h2>
-                    <p className="card-description">Top Teams This Week</p>
+                    <CardTitle>Leaderboard</CardTitle>
+                    <CardDescription>Top Teams This Week</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ol className="leaderboard-list">
+                    <ol className="space-y-2">
                         {leaderboard.map((team, index) => (
-                            <li key={index} className="leaderboard-item">
-                                <span className="leaderboard-name">
-                                    <span className="leaderboard-rank">{index + 1}.</span>
-                                    <Avatar>{team.avatar}</Avatar>
+                            <li key={index} className="flex items-center justify-between">
+                                <span className="flex items-center">
+                                    <span className="font-bold mr-2">{index + 1}.</span>
+                                    <Avatar className="h-6 w-6 mr-2">
+                                        <AvatarImage src={`/placeholder.svg?height=32&width=32`} />
+                                        <AvatarFallback>{team.avatar}</AvatarFallback>
+                                    </Avatar>
                                     {team.name}
                                 </span>
                                 <span>${team.amount}</span>
@@ -86,15 +91,16 @@ export function DashboardClient({
                 </CardContent>
             </Card>
 
+            {/* Upcoming Events */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Upcoming Events</h2>
-                    <p className="card-description">Join and make a difference</p>
+                    <CardTitle>Upcoming Events</CardTitle>
+                    <CardDescription>Join and make a difference</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ul className="events-list">
+                    <ul className="space-y-2">
                         {upcomingEvents.map((event, index) => (
-                            <li key={index} className="event-item">
+                            <li key={index} className="flex justify-between items-center">
                                 <span>{event.name}</span>
                                 <Button size="sm">{event.action}</Button>
                             </li>
@@ -103,38 +109,40 @@ export function DashboardClient({
                 </CardContent>
             </Card>
 
+            {/* Donation Options */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Donation Options</h2>
-                    <p className="card-description">Choose how you want to help</p>
+                    <CardTitle>Donation Options</CardTitle>
+                    <CardDescription>Choose how you want to help</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Button className="full-width" variant="outline">
-                        <Gift className="button-icon" /> Monetary Donation
+                <CardContent className="space-y-2">
+                    <Button className="w-full" variant="outline">
+                        <Gift className="mr-2 h-4 w-4" /> Monetary Donation
                     </Button>
-                    <Button className="full-width" variant="outline">
-                        <Gift className="button-icon" /> Donate Goods
+                    <Button className="w-full" variant="outline">
+                        <Gift className="mr-2 h-4 w-4" /> Donate Goods
                     </Button>
-                    <Button className="full-width" variant="outline">
-                        <Users className="button-icon" /> Offer Services
+                    <Button className="w-full" variant="outline">
+                        <Users className="mr-2 h-4 w-4" /> Offer Services
                     </Button>
                 </CardContent>
             </Card>
 
+            {/* Community Impact */}
             <Card>
                 <CardHeader>
-                    <h2 className="card-title">Community Impact</h2>
-                    <p className="card-description">Your contributions at work</p>
+                    <CardTitle>Community Impact</CardTitle>
+                    <CardDescription>Your contributions at work</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="impact-list">
+                    <div className="space-y-2">
                         {communityImpact.map((impact, index) => (
-                            <p key={index} className="impact-item">{impact}</p>
+                            <p key={index} className="text-sm">{impact}</p>
                         ))}
+                        <Button className="w-full mt-4" variant="outline">
+                            <Share2 className="mr-2 h-4 w-4" /> Share Your Impact
+                        </Button>
                     </div>
-                    <Button className="full-width" variant="outline">
-                        <Share2 className="button-icon" /> Share Your Impact
-                    </Button>
                 </CardContent>
             </Card>
         </div>

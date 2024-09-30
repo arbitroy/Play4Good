@@ -1,5 +1,4 @@
 import { DashboardClient } from './dashboard-client'
-import './dashboard.css'
 
 export default function DashboardPage() {
     // This could be fetched from an API in a real application
@@ -27,8 +26,7 @@ export default function DashboardPage() {
     ]
 
     return (
-        <div className="container">
-            <h1 className="dashboard-title">Play4Good Dashboard</h1>
+        <div className="container mx-auto p-4 bg-background text-foreground">
             <DashboardClient
                 teamProgress={teamProgress}
                 achievements={achievements}

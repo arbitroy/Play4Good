@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import styles from '../components/AboutSection.module.css';
 import getCookie from '../utils/cookieHandler';
 import useStorage from '../utils/useStorage';
 import Modal from './Modal';
@@ -95,7 +94,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                 setError('File size should not exceed 5MB');
                 return;
             }
-    
+
             try {
                 const compressedImageUrl = await compressImage(file, 0.8); // Compress the image
                 setFormData((prevData) => ({
@@ -108,7 +107,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             }
         }
     };
-    
+
 
     const validateForm = (): boolean => {
         if (!formData.username.trim()) {
@@ -207,48 +206,48 @@ const Page = ({ searchParams }: SearchParamProps) => {
     };
 
     return (
-        <section className={`${styles.section}`} id="about">
-            <div className={styles.container}>
-                <div className={`${styles.row} ${styles.flexRowReverse}`}>
-                    <div className={styles.colLg6}>
-                        <div className={`${styles.aboutText} ${styles.goTo}`}>
-                            <h3 className={styles.darkColor}>
+        <section className="py-5 relative text-white" id="about">
+            <div className="max-w-7xl mx-auto">
+                <div className="flex flex-wrap items-center flex-row-reverse">
+                    <div className="w-full lg:w-1/2">
+                        <div className="about-text relative pr-5">
+                            <h3 className="text-4xl font-bold mb-1.5 text-[#20247b]">
                                 Profile
-                                <span className={styles.editIcon}>
-                                    <i className="fas fa-pencil-alt" onClick={openModal}></i>
+                                <span className="absolute top-0 left-36 text-base cursor-pointer text-gray-600 bg-[#f0f8ff] transition-colors duration-300 p-2 rounded-full hover:text-gray-800" onClick={openModal}>
+                                    <i className="fas fa-pencil-alt"></i>
                                 </span>
                             </h3>
-                            <h6 className={`${styles.themeColor} ${styles.lead}`}>
+                            <h6 className="text-[#fc5356] font-semibold mb-4">
                                 A team player &amp; avid supporter of charity
                             </h6>
-                            <div className={styles.rowAboutList}>
-                                <div className={styles.colMd6}>
-                                    <div className={styles.media}>
-                                        <label>First Name</label>
-                                        <p>{user.firstName}</p>
+                            <div className="flex flex-wrap pt-2.5">
+                                <div className="w-full md:w-1/2">
+                                    <div className="py-1.5">
+                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">First Name</label>
+                                        <p className="m-0 text-sm">{user.firstName}</p>
                                     </div>
-                                    <div className={styles.media}>
-                                        <label>Last Name</label>
-                                        <p>{user.lastName}</p>
+                                    <div className="py-1.5">
+                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">Last Name</label>
+                                        <p className="m-0 text-sm">{user.lastName}</p>
                                     </div>
                                 </div>
-                                <div className={styles.colMd6}>
-                                    <div className={styles.media}>
-                                        <label>E-mail</label>
-                                        <p>{user.email}</p>
+                                <div className="w-full md:w-1/2">
+                                    <div className="py-1.5">
+                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">E-mail</label>
+                                        <p className="m-0 text-sm">{user.email}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className={styles.colLg6}>
-                        <div className={styles.aboutAvatar}>
+                    <div className="w-full lg:w-1/2">
+                        <div className="about-avatar">
                             <Image
                                 src={user.avatar_url}
                                 alt="Avatar"
                                 width={350}
                                 height={350}
-                                style={{ borderRadius: '100%' }}
+                                className="rounded-full"
                             />
                         </div>
                     </div>
@@ -257,32 +256,32 @@ const Page = ({ searchParams }: SearchParamProps) => {
 
             {show && (
                 <Modal onClose={closeModal}>
-                    <div className={styles.modalContent}>
-                        <h2 className={styles.modalHeader}>Edit Profile</h2>
-                        <p className={styles.modalDescription}>
+                    <div className="rounded-lg max-w-md mx-auto text-center">
+                        <h2 className="text-2xl font-bold mb-2.5">Edit Profile</h2>
+                        <p className="text-base mb-5">
                             Here you can edit your profile information.
                         </p>
-                        <div className={styles.modalAvatar}>
+                        <div className="mb-5">
                             <Image
                                 src={formData.avatar_url || user.avatar_url}
                                 alt="Avatar"
                                 width={200}
                                 height={200}
-                                style={{ borderRadius: '100%' }}
+                                className="rounded-full mx-auto"
                             />
                         </div>
 
-                        {error && <div className={styles.errorMessage}>{error}</div>}
-                        {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
+                        {error && <div className="text-red-500 mb-2">{error}</div>}
+                        {successMessage && <div className="text-green-500 mb-2">{successMessage}</div>}
 
-                        <form className={styles.modalForm} onSubmit={handleSubmit}>
-                            <label className={styles.fileInputLabel}>
+                        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                            <label className="block text-sm mb-2.5 cursor-pointer">
                                 Choose Profile Picture
                                 <input
                                     type="file"
                                     accept="image/*"
                                     onChange={handleFileChange}
-                                    className={styles.fileInput}
+                                    className="hidden"
                                 />
                             </label>
 
@@ -293,7 +292,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 required
-                                className={styles.modalInput}
+                                className="p-2.5 text-base border border-gray-300 rounded-md w-full focus:outline-none focus:border-blue-500"
                             />
                             <input
                                 type="text"
@@ -301,7 +300,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 name="first_name"
                                 value={formData.first_name}
                                 onChange={handleChange}
-                                className={styles.modalInput}
+                                className="p-2.5 text-base border border-gray-300 rounded-md w-full focus:outline-none focus:border-blue-500"
                             />
                             <input
                                 type="text"
@@ -309,7 +308,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 name="last_name"
                                 value={formData.last_name}
                                 onChange={handleChange}
-                                className={styles.modalInput}
+                                className="p-2.5 text-base border border-gray-300 rounded-md w-full focus:outline-none focus:border-blue-500"
                             />
                             <input
                                 type="email"
@@ -318,9 +317,9 @@ const Page = ({ searchParams }: SearchParamProps) => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                className={styles.modalInput}
+                                className="p-2.5 text-base border border-gray-300 rounded-md w-full focus:outline-none focus:border-blue-500"
                             />
-                            <button type="submit" className={styles.modalButton}>
+                            <button type="submit" className="py-2.5 px-5 bg-blue-600 text-white border-none rounded-md cursor-pointer text-base hover:bg-blue-700">
                                 Submit
                             </button>
                         </form>

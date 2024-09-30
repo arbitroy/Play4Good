@@ -1,5 +1,4 @@
 import React from 'react';
-import styles from '../components/Modal.module.css'; // Define styles for modal
 
 type ModalProps = {
     onClose: () => void;
@@ -8,9 +7,12 @@ type ModalProps = {
 
 const Modal = ({ onClose, children }: ModalProps) => {
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={onClose}>
+        <div className="fixed inset-0 w-screen h-screen bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-[#635C51] p-5 rounded-lg w-[400px] relative">
+                <button 
+                    className="absolute top-2 right-2 bg-transparent border-none text-2xl cursor-pointer"
+                    onClick={onClose}
+                >
                     &times;
                 </button>
                 {children}
