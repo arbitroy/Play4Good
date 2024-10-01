@@ -1,4 +1,5 @@
 'use client';
+
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -6,6 +7,7 @@ import getCookie from '../utils/cookieHandler';
 import useStorage from '../utils/useStorage';
 import Modal from './Modal';
 import { compressImage } from '../utils/compressImage';
+import { Trophy, Users, Heart, Edit2, Gift } from 'lucide-react';
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
@@ -28,7 +30,6 @@ type FormData = {
     avatar_url: string;
 };
 
-
 type ApiResponse = {
     id: number;
     username: string;
@@ -41,11 +42,31 @@ type ApiResponse = {
     updated_at: { Time: string; Valid: boolean };
 };
 
+type Achievement = {
+    id: number;
+    name: string;
+    description: string;
+    icon: string;
+};
+
+type TeamMember = {
+    id: number;
+    name: string;
+    avatar: string;
+};
+
+type Donation = {
+    id: number;
+    cause: string;
+    amount: number;
+    date: string;
+};
+
 const Page = ({ searchParams }: SearchParamProps) => {
     const api_url = process.env.NEXT_PUBLIC_API_URL;
     const { getItem, setItem } = useStorage();
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('Updated Successfully');
+    const [successMessage, setSuccessMessage] = useState('');
     const [user, setUser] = useState<User>({
         id: '',
         username: '',
@@ -62,6 +83,24 @@ const Page = ({ searchParams }: SearchParamProps) => {
         email: '',
         avatar_url: '',
     });
+
+    const [achievements, setAchievements] = useState<Achievement[]>([
+        { id: 1, name: "First Donation", description: "Made your first donation", icon: "🎉" },
+        { id: 2, name: "Team Player", description: "Joined a team", icon: "🤝" },
+        { id: 3, name: "Generous Giver", description: "Donated over $100", icon: "💰" },
+    ]);
+
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
+        { id: 1, name: "Alice", avatar: "/person-placeholder.svg" },
+        { id: 2, name: "Bob", avatar: "/person-placeholder.svg" },
+        { id: 3, name: "Charlie", avatar: "/person-placeholder.svg" },
+    ]);
+
+    const [recentDonations, setRecentDonations] = useState<Donation[]>([
+        { id: 1, cause: "Clean Water Initiative", amount: 50, date: "2023-06-15" },
+        { id: 2, cause: "Education for All", amount: 75, date: "2023-06-10" },
+        { id: 3, cause: "Wildlife Conservation", amount: 100, date: "2023-06-05" },
+    ]);
 
     const router = useRouter();
     const searchParamsObj = useSearchParams();
@@ -84,19 +123,18 @@ const Page = ({ searchParams }: SearchParamProps) => {
             email: loadedUser.email,
             avatar_url: loadedUser.avatar_url,
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 5 * 1024 * 1024) { // Check if file size exceeds 5MB
+            if (file.size > 5 * 1024 * 1024) {
                 setError('File size should not exceed 5MB');
                 return;
             }
 
             try {
-                const compressedImageUrl = await compressImage(file, 0.8); // Compress the image
+                const compressedImageUrl = await compressImage(file, 0.8);
                 setFormData((prevData) => ({
                     ...prevData,
                     avatar_url: compressedImageUrl,
@@ -107,7 +145,6 @@ const Page = ({ searchParams }: SearchParamProps) => {
             }
         }
     };
-
 
     const validateForm = (): boolean => {
         if (!formData.username.trim()) {
@@ -158,7 +195,6 @@ const Page = ({ searchParams }: SearchParamProps) => {
 
             setUser(updatedUser);
 
-            // Update localStorage
             setItem('id', updatedUser.id);
             setItem('username', updatedUser.username);
             setItem('first_name', updatedUser.firstName);
@@ -206,49 +242,93 @@ const Page = ({ searchParams }: SearchParamProps) => {
     };
 
     return (
-        <section className="py-8 relative text-white" id="about">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex flex-wrap items-center flex-row-reverse">
-                    <div className="w-full lg:w-1/2">
-                        <div className="about-text relative pr-5">
-                            <h3 className="text-4xl font-bold mb-1.5 text-[#20247b]">
-                                Profile
-                                <span className="absolute top-0 left-36 text-base cursor-pointer text-gray-600 bg-[#f0f8ff] transition-colors duration-300 p-2 rounded-full hover:text-gray-800" onClick={openModal}>
-                                    <i className="fas fa-pencil-alt"></i>
-                                </span>
-                            </h3>
-                            <h6 className="text-[#fc5356] font-semibold mb-4">
-                                A team player &amp; avid supporter of charity
-                            </h6>
-                            <div className="flex flex-wrap pt-2.5">
-                                <div className="w-full md:w-1/2">
-                                    <div className="py-1.5">
-                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">First Name</label>
-                                        <p className="m-0 text-sm">{user.firstName}</p>
-                                    </div>
-                                    <div className="py-1.5">
-                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">Last Name</label>
-                                        <p className="m-0 text-sm">{user.lastName}</p>
-                                    </div>
+        <div className="min-h-screen  py-12">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="bg-white shadow-xl rounded-lg overflow-hidden">
+                    <div className="p-6 md:p-8">
+                        <div className="flex flex-col md:flex-row items-center">
+                            <div className="md:w-1/3 mb-6 md:mb-0">
+                                <Image
+                                    src={user.avatar_url}
+                                    alt="Avatar"
+                                    width={200}
+                                    height={200}
+                                    className="rounded-full mx-auto"
+                                />
+                            </div>
+                            <div className="md:w-2/3 md:pl-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h1 className="text-3xl font-bold text-gray-800">
+                                        {user.firstName} {user.lastName}
+                                    </h1>
+                                    <button
+                                        onClick={openModal}
+                                        className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition duration-300"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
                                 </div>
-                                <div className="w-full md:w-1/2">
-                                    <div className="py-1.5">
-                                        <label className="text-[#20247b] font-semibold w-22 m-0 relative after:content-[''] after:absolute after:top-0 after:bottom-0 after:right-2.5 after:w-px after:h-3 after:bg-[#20247b] after:transform after:rotate-15 after:m-auto after:opacity-50">E-mail</label>
-                                        <p className="m-0 text-sm">{user.email}</p>
-                                    </div>
-                                </div>
+                                <p className="text-gray-600 mb-4">@{user.username}</p>
+                                <p className="text-gray-700 mb-2">
+                                    <strong>Email:</strong> {user.email}
+                                </p>
+                                <p className="text-gray-700">
+                                    <strong>Member since:</strong> June 1, 2023
+                                </p>
                             </div>
                         </div>
-                    </div>
-                    <div className="w-full lg:w-1/2">
-                        <div className="about-avatar">
-                            <Image
-                                src={user.avatar_url}
-                                alt="Avatar"
-                                width={350}
-                                height={350}
-                                className="rounded-full"
-                            />
+
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-blue-50 p-6 rounded-lg shadow">
+                                <h2 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
+                                    <Trophy className="mr-2" /> Achievements
+                                </h2>
+                                <ul className="space-y-2">
+                                    {achievements.map((achievement) => (
+                                        <li key={achievement.id} className="flex items-center">
+                                            <span className="text-2xl mr-2">{achievement.icon}</span>
+                                            <div>
+                                                <p className="font-medium">{achievement.name}</p>
+                                                <p className="text-sm text-gray-600">{achievement.description}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div className="bg-green-50 p-6 rounded-lg shadow">
+                                <h2 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                                    <Users className="mr-2" /> Current Team
+                                </h2>
+                                <div className="flex flex-wrap gap-4">
+                                    {teamMembers.map((member) => (
+                                        <div key={member.id} className="flex flex-col items-center">
+                                            <Image
+                                                src={member.avatar}
+                                                alt={member.name}
+                                                width={50}
+                                                height={50}
+                                                className="rounded-full"
+                                            />
+                                            <p className="mt-1 text-sm">{member.name}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-pink-50 p-6 rounded-lg shadow">
+                                <h2 className="text-xl font-semibold text-pink-800 mb-4 flex items-center">
+                                    <Gift className="mr-2" /> Recent Donations
+                                </h2>
+                                <ul className="space-y-2">
+                                    {recentDonations.map((donation) => (
+                                        <li key={donation.id} className="flex justify-between items-center">
+                                            <span>{donation.cause}</span>
+                                            <span className="font-medium">${donation.amount}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -326,7 +406,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
                     </div>
                 </Modal>
             )}
-        </section>
+        </div>
     );
 };
 
