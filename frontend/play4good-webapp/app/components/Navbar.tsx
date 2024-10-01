@@ -29,6 +29,7 @@ const Navbar: React.FC = () => {
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/auth" className="text-white no-underline">Login/Signup</Link></li>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/user-profile" className="text-white no-underline">Profile</Link></li>
                 <li className="my-2 md:my-0 md:ml-4"><Link href="/dashboard" className="text-white no-underline">Dashboard</Link></li>
+                <li className="my-2 md:my-0 md:ml-4"><Link href="/causes" className="text-white no-underline">Causes</Link></li>
             </ul>
         </nav>
     );

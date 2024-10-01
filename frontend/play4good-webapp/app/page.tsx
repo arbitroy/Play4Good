@@ -11,7 +11,7 @@ export default function Page() {
           <p className="text-xl text-blue-700 mb-8 max-w-2xl mx-auto">
             Join Play4Good and make every donation a memorable experience. Form teams, compete, and track your impact in real-time.
           </p>
-          <Link href="#join" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition duration-300">
+          <Link href="/causes" className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition duration-300">
             Get Started
             <ArrowRight className="ml-2 w-5 h-5" />
           </Link>
