@@ -66,8 +66,8 @@ DELETE FROM user_team
 WHERE user_id = $1 AND team_id = $2;
 
 -- name: CreateCause :one
-INSERT INTO causes (name, description, goal, start_date, end_date, status)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO causes (name, description, goal, start_date, end_date, status, image, category)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: GetCause :one
@@ -81,13 +81,14 @@ LIMIT $1 OFFSET $2;
 
 -- name: UpdateCause :one
 UPDATE causes
-SET name = $2, description = $3, goal = $4, current_amount = $5, start_date = $6, end_date = $7, status = $8, updated_at = CURRENT_TIMESTAMP
+SET name = $2, description = $3, goal = $4, current_amount = $5, start_date = $6, end_date = $7, status = $8, image = $9, category = $10, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
 -- name: DeleteCause :exec
 DELETE FROM causes
 WHERE id = $1;
+
 
 -- name: CreateDonation :one
 INSERT INTO donations (user_id, cause_id, team_id, amount, donation_type, status)

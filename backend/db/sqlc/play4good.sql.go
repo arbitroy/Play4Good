@@ -31,9 +31,9 @@ func (q *Queries) AddUserToTeam(ctx context.Context, arg AddUserToTeamParams) (U
 }
 
 const createCause = `-- name: CreateCause :one
-INSERT INTO causes (name, description, goal, start_date, end_date, status)
-VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at
+INSERT INTO causes (name, description, goal, start_date, end_date, status, image, category)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at, image, category
 `
 
 type CreateCauseParams struct {
@@ -43,6 +43,8 @@ type CreateCauseParams struct {
 	StartDate   sql.NullTime   `json:"start_date"`
 	EndDate     sql.NullTime   `json:"end_date"`
 	Status      sql.NullString `json:"status"`
+	Image       sql.NullString `json:"image"`
+	Category    sql.NullString `json:"category"`
 }
 
 func (q *Queries) CreateCause(ctx context.Context, arg CreateCauseParams) (Cause, error) {
@@ -53,6 +55,8 @@ func (q *Queries) CreateCause(ctx context.Context, arg CreateCauseParams) (Cause
 		arg.StartDate,
 		arg.EndDate,
 		arg.Status,
+		arg.Image,
+		arg.Category,
 	)
 	var i Cause
 	err := row.Scan(
@@ -66,6 +70,8 @@ func (q *Queries) CreateCause(ctx context.Context, arg CreateCauseParams) (Cause
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Image,
+		&i.Category,
 	)
 	return i, err
 }
@@ -287,7 +293,7 @@ func (q *Queries) DeleteUserToken(ctx context.Context, arg DeleteUserTokenParams
 }
 
 const getCause = `-- name: GetCause :one
-SELECT id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at FROM causes
+SELECT id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at, image, category FROM causes
 WHERE id = $1 LIMIT 1
 `
 
@@ -305,6 +311,8 @@ func (q *Queries) GetCause(ctx context.Context, id int32) (Cause, error) {
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Image,
+		&i.Category,
 	)
 	return i, err
 }
@@ -498,7 +506,7 @@ func (q *Queries) GetUserTokenByUserID(ctx context.Context, userID sql.NullInt32
 }
 
 const listCauses = `-- name: ListCauses :many
-SELECT id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at FROM causes
+SELECT id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at, image, category FROM causes
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -528,6 +536,8 @@ func (q *Queries) ListCauses(ctx context.Context, arg ListCausesParams) ([]Cause
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Image,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -727,9 +737,9 @@ func (q *Queries) RemoveUserFromTeam(ctx context.Context, arg RemoveUserFromTeam
 
 const updateCause = `-- name: UpdateCause :one
 UPDATE causes
-SET name = $2, description = $3, goal = $4, current_amount = $5, start_date = $6, end_date = $7, status = $8, updated_at = CURRENT_TIMESTAMP
+SET name = $2, description = $3, goal = $4, current_amount = $5, start_date = $6, end_date = $7, status = $8, image = $9, category = $10, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at
+RETURNING id, name, description, goal, current_amount, start_date, end_date, status, created_at, updated_at, image, category
 `
 
 type UpdateCauseParams struct {
@@ -741,6 +751,8 @@ type UpdateCauseParams struct {
 	StartDate     sql.NullTime   `json:"start_date"`
 	EndDate       sql.NullTime   `json:"end_date"`
 	Status        sql.NullString `json:"status"`
+	Image         sql.NullString `json:"image"`
+	Category      sql.NullString `json:"category"`
 }
 
 func (q *Queries) UpdateCause(ctx context.Context, arg UpdateCauseParams) (Cause, error) {
@@ -753,6 +765,8 @@ func (q *Queries) UpdateCause(ctx context.Context, arg UpdateCauseParams) (Cause
 		arg.StartDate,
 		arg.EndDate,
 		arg.Status,
+		arg.Image,
+		arg.Category,
 	)
 	var i Cause
 	err := row.Scan(
@@ -766,6 +780,8 @@ func (q *Queries) UpdateCause(ctx context.Context, arg UpdateCauseParams) (Cause
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Image,
+		&i.Category,
 	)
 	return i, err
 }

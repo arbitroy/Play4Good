@@ -20,6 +20,8 @@ type Cause struct {
 	Status        sql.NullString `json:"status"`
 	CreatedAt     sql.NullTime   `json:"created_at"`
 	UpdatedAt     sql.NullTime   `json:"updated_at"`
+	Image         sql.NullString `json:"image"`
+	Category      sql.NullString `json:"category"`
 }
 
 type Donation struct {

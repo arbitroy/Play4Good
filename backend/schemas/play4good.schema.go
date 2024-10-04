@@ -1,4 +1,5 @@
 package schemas
+
 import (
     "time"
 )
@@ -38,22 +39,26 @@ type TeamUpdateRequest struct {
 
 // CauseCreateRequest represents the request body for creating a new cause
 type CauseCreateRequest struct {
-    Name        string     `json:"name" binding:"required,min=3,max=100"`
-    Description string     `json:"description"`
-    Goal        float64    `json:"goal" binding:"required,min=0"`
+    Name        string    `json:"name" binding:"required,min=3,max=100"`
+    Description string    `json:"description"`
+    Goal        float64   `json:"goal" binding:"required,min=0"`
     StartDate   time.Time `json:"start_date" binding:"required"`
-    EndDate     time.Time  `json:"end_date" binding:"required,gtfield=StartDate"`
-    Status      string     `json:"status" binding:"required,oneof=active inactive completed"`
+    EndDate     time.Time `json:"end_date" binding:"required,gtfield=StartDate"`
+    Status      string    `json:"status" binding:"required,oneof=active inactive completed"`
+    Image       string    `json:"image" binding:"omitempty,url"`
+    Category    string    `json:"category" binding:"omitempty,min=3,max=50"`
 }
 
 // CauseUpdateRequest represents the request body for updating a cause
 type CauseUpdateRequest struct {
-    Name        string     `json:"name" binding:"omitempty,min=3,max=100"`
-    Description string     `json:"description"`
-    Goal        float64    `json:"goal" binding:"omitempty,min=0"`
-    StartDate   time.Time  `json:"start_date"`
-    EndDate     time.Time  `json:"end_date" binding:"omitempty,gtfield=StartDate"`
-    Status      string     `json:"status" binding:"omitempty,oneof=active inactive completed"`
+    Name        string    `json:"name" binding:"omitempty,min=3,max=100"`
+    Description string    `json:"description"`
+    Goal        float64   `json:"goal" binding:"omitempty,min=0"`
+    StartDate   time.Time `json:"start_date"`
+    EndDate     time.Time `json:"end_date" binding:"omitempty,gtfield=StartDate"`
+    Status      string    `json:"status" binding:"omitempty,oneof=active inactive completed"`
+    Image       string    `json:"image" binding:"omitempty,url"`
+    Category    string    `json:"category" binding:"omitempty,min=3,max=50"`
 }
 
 // DonationCreateRequest represents the request body for creating a new donation

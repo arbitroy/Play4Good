@@ -55,8 +55,6 @@ func (c *Play4GoodController) validateToken(ctx *gin.Context) ( error) {
 	return  nil
 }
 
-
-
 func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
 	// Parse and validate the request body
 	var req struct {
@@ -497,6 +495,8 @@ func (c *Play4GoodController) CreateCause(ctx *gin.Context) {
 			Valid: !payload.EndDate.IsZero(),
 		},
 		Status: sql.NullString{String: payload.Status, Valid: payload.Status != ""},
+		Image: sql.NullString{String: payload.Image, Valid: payload.Image != ""},
+		Category: sql.NullString{String: payload.Category, Valid: payload.Category != ""},
 	}
 
 	cause, err := c.db.CreateCause(ctx, arg)
@@ -568,6 +568,8 @@ func (c *Play4GoodController) UpdateCause(ctx *gin.Context) {
 			Valid: !payload.EndDate.IsZero(),
 		},
 		Status: sql.NullString{String: payload.Status, Valid: payload.Status != ""},
+		Image: sql.NullString{String: payload.Image, Valid: payload.Image != ""},
+		Category: sql.NullString{String: payload.Category, Valid: payload.Category != ""},
 	}
 
 	cause, err := c.db.UpdateCause(ctx, arg)
