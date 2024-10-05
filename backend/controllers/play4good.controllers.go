@@ -859,3 +859,140 @@ func (c *Play4GoodController) UpdateLeaderboardEntry(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, entry)
 }
+
+// ListUsers returns a list of all users
+func (c *Play4GoodController) ListUsers(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	var payload *schemas.ListUsersRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListUsersParams{
+		Limit: int32(payload.Limit),
+		Offset: int32(payload.Offset),
+	}
+	users, err := c.db.ListUsers(ctx,arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, users)
+}
+
+// ListCauses returns a list of all causes
+func (c *Play4GoodController) ListCauses(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload *schemas.ListCausesRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListCausesParams{
+		Limit: int32(payload.Limit),
+		Offset: int32(payload.Offset),
+	}
+
+	causes, err := c.db.ListCauses(ctx,arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, causes)
+}
+
+// ListDonations returns a list of all donations
+func (c *Play4GoodController) ListDonations(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload *schemas.ListDonationsRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListDonationsParams{
+		Limit: int32(payload.Limit),
+		Offset: int32(payload.Offset),
+	}
+	donations, err := c.db.ListDonations(ctx,arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, donations)
+}
+
+// ListTeams returns a list of all teams
+func (c *Play4GoodController) ListTeams(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload *schemas.ListTeamsRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListTeamsParams{
+		Limit: int32(payload.Limit),
+		Offset: int32(payload.Offset),
+	}
+	teams, err := c.db.ListTeams(ctx,arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, teams)
+}
+
+// ListLeaderboards returns a list of all leaderboards
+func (c *Play4GoodController) ListLeaderboards(ctx *gin.Context) {
+	err := c.validateToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload *schemas.ListLeaderBoardsRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	arg := db.ListLeaderboardsParams{
+		Limit: int32(payload.Limit),
+		Offset: int32(payload.Offset),
+	}
+
+
+	leaderboards, err := c.db.ListLeaderboards(ctx,arg)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, leaderboards)
+}

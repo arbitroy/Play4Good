@@ -97,3 +97,29 @@ type UserTeamCreateRequest struct {
 type UserTeamUpdateRequest struct {
     Role string `json:"role" binding:"required,oneof=member admin"`
 }
+
+
+type ListCausesRequest struct {
+    Limit int64 `json:"limit" binding:"required"`
+	Offset int64 `json:"offset" `
+}
+
+type ListUsersRequest struct {
+    Limit int64 `json:"limit" binding:"required"`
+	Offset int64 `json:"offset" `
+}
+
+type ListDonationsRequest struct {
+    Limit int64 `json:"limit" binding:"required"`
+	Offset int64 `json:"offset" `
+}
+
+type ListTeamsRequest struct {
+    Limit int64 `json:"limit" binding:"required"`
+	Offset int64 `json:"offset" `
+}
+
+type ListLeaderBoardsRequest struct {
+    Limit int64 `json:"limit" binding:"required"`
+	Offset int64 `json:"offset" `
+}

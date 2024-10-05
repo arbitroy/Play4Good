@@ -1,58 +1,91 @@
-'use client'
-
-import Image from 'next/image'
 import Link from 'next/link'
-import { Heart, Edit, Trash } from 'lucide-react'
-
-type Cause = {
-    id: number
-    name: string
-    description: string | null
-    goal: string
-    start_date: string | null
-    end_date: string | null
-    status: 'active' | 'completed' | 'cancelled' | null
-    image: string | null
-    category: string | null
-}
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
+import { Badge } from "../components/ui/badge"
+import { Pencil, Trash2 } from "lucide-react"
 
 type CauseCardProps = {
-    cause: Cause
-    onDelete: () => void
+    cause: {
+        id: number
+        name: string
+        description: string
+        goal: string
+        current_amount: string
+        start_date: string | null
+        end_date: string | null
+        status: 'active' | 'completed' | 'cancelled' | 'inactive'
+        image: string
+        category: string
+    }
+    onDelete: (id: number) => void
 }
 
 export default function CauseCard({ cause, onDelete }: CauseCardProps) {
+    const progress = Math.min(
+        (parseFloat(cause.current_amount) / parseFloat(cause.goal)) * 100,
+        100
+    )
+
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:scale-105">
-            <Image src={cause.image || '/cause-placeholder.svg'} alt={cause.name} width={300} height={200} className="w-full h-48 object-cover" />
-            <div className="p-6">
-                <h2 className="text-xl font-semibold text-blue-900 mb-2">{cause.name}</h2>
-                <p className="text-gray-600 mb-4">{cause.description || 'No description available'}</p>
-                <div className="flex justify-between items-center mb-4">
-                    <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">{cause.category || 'Uncategorized'}</span>
-                    <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">{cause.status || 'Unknown'}</span>
+        <Card className="w-full">
+            <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                    <span>{cause.name}</span>
+                    <Badge variant={cause.status === 'active' ? 'default' : 'secondary'}>
+                        {cause.status}
+                    </Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="aspect-video relative mb-4">
+                    <img
+                        src={cause.image || '/cause-placeholder.svg'}
+                        alt={cause.name}
+                        className="object-cover w-full h-full rounded-md"
+                    />
                 </div>
-                <div className="mb-4">
-                    <p className="text-sm text-gray-600">Goal: ${cause.goal.toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">
-                        {cause.start_date && `Start: ${new Date(cause.start_date).toLocaleDateString()}`}
-                        {cause.end_date && ` - End: ${new Date(cause.end_date).toLocaleDateString()}`}
+                <p className="text-sm text-gray-600 mb-2">{cause.description}</p>
+                <div className="space-y-2">
+                    <p className="text-sm font-medium">
+                        Category: <span className="font-normal">{cause.category}</span>
                     </p>
-                </div>
-                <div className="flex justify-between items-center">
-                    <div className="flex space-x-2">
-                        <button className="text-pink-500 hover:text-pink-600 transition-colors duration-300">
-                            <Heart className="w-6 h-6" />
-                        </button>
-                        <Link href={`/causes/${cause.id}/edit`} className="text-blue-500 hover:text-blue-600 transition-colors duration-300">
-                            <Edit className="w-6 h-6" />
-                        </Link>
-                        <button onClick={onDelete} className="text-red-500 hover:text-red-600 transition-colors duration-300">
-                            <Trash className="w-6 h-6" />
-                        </button>
+                    <p className="text-sm font-medium">
+                        Goal: <span className="font-normal">${parseFloat(cause.goal).toLocaleString()}</span>
+                    </p>
+                    <p className="text-sm font-medium">
+                        Raised: <span className="font-normal">${parseFloat(cause.current_amount).toLocaleString()}</span>
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                            className="bg-blue-600 h-2.5 rounded-full"
+                            style={{ width: `${progress}%` }}
+                        ></div>
                     </div>
+                    <p className="text-sm font-medium">
+                        Progress: <span className="font-normal">{progress.toFixed(2)}%</span>
+                    </p>
+                    {cause.start_date && (
+                        <p className="text-sm font-medium">
+                            Start Date: <span className="font-normal">{new Date(cause.start_date).toLocaleDateString()}</span>
+                        </p>
+                    )}
+                    {cause.end_date && (
+                        <p className="text-sm font-medium">
+                            End Date: <span className="font-normal">{new Date(cause.end_date).toLocaleDateString()}</span>
+                        </p>
+                    )}
                 </div>
-            </div>
-        </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+                <Link href={`/causes/${cause.id}/edit`} passHref>
+                    <Button variant="outline" className="w-full mr-2">
+                        <Pencil className="w-4 h-4 mr-2" /> Edit
+                    </Button>
+                </Link>
+                <Button variant="destructive" className="w-full ml-2" onClick={() => onDelete(cause.id)}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                </Button>
+            </CardFooter>
+        </Card>
     )
 }
