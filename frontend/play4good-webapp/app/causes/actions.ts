@@ -30,21 +30,45 @@ function convertToAPIDateFormat(dateString: string | null): string | null {
 }
 
 const CauseSchema = z.object({
-    id: z.number(),
     name: z.string().min(3, "Name must be at least 3 characters long"),
     description: z.string().min(10, "Description must be at least 10 characters long"),
-    goal: z.string().refine((val) => !isNaN(Number(val)), "Goal must be a valid number"),
-    current_amount: z.string().refine((val) => !isNaN(Number(val)), "Current amount must be a valid number"),
+    goal: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Goal must be a valid positive number"),
+    current_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, "Current amount must be a valid non-negative number"),
     start_date: z.string().nullable(),
     end_date: z.string().nullable(),
     status: z.enum(['active', 'completed', 'cancelled', 'inactive']),
     image: z.string().url("Invalid image URL"),
     category: z.string().min(3, "Category must be at least 3 characters long"),
-    created_at: z.string().nullable(),
-    updated_at: z.string().nullable(),
 })
 
-type CauseInput = z.infer<typeof CauseSchema>
+type CauseInput = z.infer<typeof CauseSchema> & {
+    id?: number;
+    created_at?: string | null;
+    updated_at?: string | null;
+}
+
+export type ActionError = {
+    [key: string]: string[];
+} & {
+    _form?: string[];
+}
+
+export type ActionResult = {
+    success: boolean;
+    cause?: CauseInput;
+    error?: ActionError;
+}
+
+function safeParseDateString(dateString: string | null): string | null {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        console.error(`Invalid date: ${dateString}`);
+        return null;
+    }
+    return date.toISOString().split('T')[0];
+}
+
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const token = cookies().get('token')?.value
@@ -87,7 +111,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     }
 }
 
-export async function createCause(formData: FormData) {
+export async function createCause(formData: FormData): Promise<ActionResult> {
     const validatedFields = CauseSchema.safeParse({
         name: formData.get('name'),
         description: formData.get('description'),
@@ -101,12 +125,15 @@ export async function createCause(formData: FormData) {
     })
 
     if (!validatedFields.success) {
-        return {
-            error: validatedFields.error.issues.reduce((acc, issue) => {
-                acc[issue.path[0]] = issue.message;
-                return acc;
-            }, {} as Record<string, string>)
-        }
+        const error: ActionError = validatedFields.error.issues.reduce((acc, issue) => {
+            const key = issue.path[0].toString();
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(issue.message);
+            return acc;
+        }, {} as ActionError)
+        return { success: false, error }
     }
 
     const causeData = {
@@ -120,30 +147,44 @@ export async function createCause(formData: FormData) {
     try {
         let newCause: CauseInput
         if (api_url) {
-            newCause = await fetchWithAuth(`${api_url}/api/causes`, {
+            console.log('Attempting to create cause with API URL:', api_url);
+            const apiResponse = await fetchWithAuth(`${api_url}/api/causes`, {
                 method: 'POST',
                 body: JSON.stringify(causeData),
             })
+            newCause = {
+                ...causeData,
+                id: apiResponse.id,
+                goal: causeData.goal.toString(), // Convert back to string for client-side consistency
+                current_amount: causeData.current_amount.toString(), // Convert back to string for client-side consistency
+                created_at: apiResponse.created_at,
+                updated_at: apiResponse.updated_at,
+            }
+            console.log('API response:', newCause);
         } else {
-            // Simulate API call with a delay
+            console.log('No API URL found, simulating API call');
             await new Promise(resolve => setTimeout(resolve, 1000))
             newCause = {
                 ...causeData,
-                id: Math.floor(Math.random() * 1000) + 1, // Generate a random id for simulation
-                goal: causeData.goal.toString(), // Convert back to string for consistency with CauseInput type
+                id: Math.floor(Math.random() * 1000) + 1,
+                goal: causeData.goal.toString(),
                 current_amount: causeData.current_amount.toString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
             }
-            console.log('Created cause:', newCause)
+            console.log('Simulated created cause:', newCause)
         }
 
         revalidatePath('/causes')
-        redirect('/causes')
+        return { success: true, cause: newCause };
     } catch (error) {
         console.error('Failed to create cause:', error)
-        return { error: { _form: [(error as Error).message || 'Failed to create cause'] } }
+        return {
+            success: false,
+            error: { _form: [(error as Error).message || 'Failed to create cause'] }
+        }
     }
 }
-
 export async function updateCause(id: number, formData: FormData) {
     const validatedFields = CauseSchema.safeParse({
         id,
@@ -158,7 +199,16 @@ export async function updateCause(id: number, formData: FormData) {
     })
 
     if (!validatedFields.success) {
-        return { error: validatedFields.error.flatten().fieldErrors }
+        return {
+            error: validatedFields.error.issues.reduce((acc, issue) => {
+                const key = issue.path[0].toString();
+                if (!acc[key]) {
+                    acc[key] = [];
+                }
+                (acc[key] as string[]).push(issue.message);
+                return acc;
+            }, {} as ActionError)
+        }
     }
 
     const causeData = {
@@ -288,8 +338,8 @@ export async function getCauseById(id: number): Promise<CauseInput> {
                 ...cause,
                 id: cause.id,
                 goal: cause.goal.toString(),
-                start_date: cause.start_date ? new Date(cause.start_date).toISOString().split('T')[0] : null,
-                end_date: cause.end_date ? new Date(cause.end_date).toISOString().split('T')[0] : null,
+                start_date: safeParseDateString(cause.start_date),
+                end_date: safeParseDateString(cause.end_date),
             }
         } else {
             // Simulate API call with a delay
