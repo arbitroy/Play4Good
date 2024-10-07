@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { Cause } from '../types/cause';
 import { z } from 'zod'
 
 const api_url = process.env.NEXT_PUBLIC_API_URL
@@ -41,11 +41,7 @@ const CauseSchema = z.object({
     category: z.string().min(3, "Category must be at least 3 characters long"),
 })
 
-type CauseInput = z.infer<typeof CauseSchema> & {
-    id?: number;
-    created_at?: string | null;
-    updated_at?: string | null;
-}
+
 
 export type ActionError = {
     [key: string]: string[];
@@ -55,7 +51,7 @@ export type ActionError = {
 
 export type ActionResult = {
     success: boolean;
-    cause?: CauseInput;
+    cause?: Cause;
     error?: ActionError;
 }
 
@@ -145,7 +141,7 @@ export async function createCause(formData: FormData): Promise<ActionResult> {
     }
 
     try {
-        let newCause: CauseInput
+        let newCause: Cause
         if (api_url) {
             console.log('Attempting to create cause with API URL:', api_url);
             const apiResponse = await fetchWithAuth(`${api_url}/api/causes`, {
@@ -185,12 +181,15 @@ export async function createCause(formData: FormData): Promise<ActionResult> {
         }
     }
 }
-export async function updateCause(id: number, formData: FormData) {
+
+
+
+export async function updateCause(id: number, formData: FormData): Promise<ActionResult> {
     const validatedFields = CauseSchema.safeParse({
-        id,
         name: formData.get('name'),
         description: formData.get('description'),
         goal: formData.get('goal'),
+        current_amount: formData.get('current_amount') || '0',
         start_date: formData.get('start_date'),
         end_date: formData.get('end_date'),
         status: formData.get('status'),
@@ -199,44 +198,68 @@ export async function updateCause(id: number, formData: FormData) {
     })
 
     if (!validatedFields.success) {
-        return {
-            error: validatedFields.error.issues.reduce((acc, issue) => {
-                const key = issue.path[0].toString();
-                if (!acc[key]) {
-                    acc[key] = [];
-                }
-                (acc[key] as string[]).push(issue.message);
-                return acc;
-            }, {} as ActionError)
-        }
+        const error: ActionError = validatedFields.error.issues.reduce((acc, issue) => {
+            const key = issue.path[0].toString();
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(issue.message);
+            return acc;
+        }, {} as ActionError)
+        return { success: false, error }
     }
 
     const causeData = {
         ...validatedFields.data,
         goal: parseFloat(validatedFields.data.goal),
+        current_amount: parseFloat(validatedFields.data.current_amount),
         start_date: convertToAPIDateFormat(validatedFields.data.start_date),
         end_date: convertToAPIDateFormat(validatedFields.data.end_date),
     }
 
     try {
+        let updatedCause: Cause
         if (api_url) {
-            await fetchWithAuth(`${api_url}/api/causes/${id}`, {
+            console.log('Attempting to update cause with API URL:', api_url);
+            const apiResponse = await fetchWithAuth(`${api_url}/api/causes/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(causeData),
             })
+            updatedCause = {
+                ...causeData,
+                id: apiResponse.id,
+                goal: causeData.goal.toString(), // Convert back to string for client-side consistency
+                current_amount: causeData.current_amount.toString(), // Convert back to string for client-side consistency
+                created_at: apiResponse.created_at,
+                updated_at: apiResponse.updated_at,
+            }
+            console.log('API response:', updatedCause);
         } else {
-            // Simulate API call with a delay
+            console.log('No API URL found, simulating API call');
             await new Promise(resolve => setTimeout(resolve, 1000))
-            console.log('Updated cause:', causeData)
+            updatedCause = {
+                ...causeData,
+                id,
+                goal: causeData.goal.toString(),
+                current_amount: causeData.current_amount.toString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            }
+            console.log('Simulated updated cause:', updatedCause)
         }
 
         revalidatePath('/causes')
-        redirect('/causes')
+        return { success: true, cause: updatedCause };
     } catch (error) {
         console.error('Failed to update cause:', error)
-        return { error: { _form: [(error as Error).message || 'Failed to update cause'] } }
+        return {
+            success: false,
+            error: { _form: [(error as Error).message || 'Failed to update cause'] }
+        }
     }
 }
+
+
 
 export async function deleteCause(id: number) {
     try {
@@ -257,7 +280,7 @@ export async function deleteCause(id: number) {
     }
 }
 
-export async function getCauses(): Promise<CauseInput[]> {
+export async function getCauses(): Promise<Cause[]> {
     const list = {
         limit: 100,
         offset: 0,
@@ -330,37 +353,44 @@ export async function getCauses(): Promise<CauseInput[]> {
 }
 
 
-export async function getCauseById(id: number): Promise<CauseInput> {
+export async function getCauseById(id: number): Promise<Cause> {
     try {
         if (api_url) {
-            const cause = await fetchWithAuth(`${api_url}/api/causes/${id}`)
+            const cause: ApiCause = await fetchWithAuth(`${api_url}/api/causes/${id}`);
             return {
-                ...cause,
                 id: cause.id,
-                goal: cause.goal.toString(),
-                start_date: safeParseDateString(cause.start_date),
-                end_date: safeParseDateString(cause.end_date),
-            }
+                name: cause.name,
+                description: cause.description.Valid ? cause.description.String : '',
+                goal: cause.goal.Valid ? cause.goal.String : '0',
+                current_amount: cause.current_amount.Valid ? cause.current_amount.String : '0',
+                start_date: cause.start_date.Valid ? new Date(cause.start_date.Time).toISOString().split('T')[0] : null,
+                end_date: cause.end_date.Valid ? new Date(cause.end_date.Time).toISOString().split('T')[0] : null,
+                status: cause.status.Valid ? (cause.status.String as 'active' | 'completed' | 'cancelled' | 'inactive') : 'inactive',
+                image: cause.image.Valid ? cause.image.String : '/cause-placeholder.svg',
+                category: cause.category.Valid ? cause.category.String : 'Uncategorized',
+                created_at: cause.created_at.Valid ? new Date(cause.created_at.Time).toISOString() : null,
+                updated_at: cause.updated_at.Valid ? new Date(cause.updated_at.Time).toISOString() : null,
+            };
         } else {
             // Simulate API call with a delay
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            await new Promise(resolve => setTimeout(resolve, 1000));
             return {
                 id,
                 name: "Clean Water Initiative",
                 description: "Providing clean water to communities in need",
                 goal: "10000",
-                start_date: "2023-07-01",
                 current_amount: "150",
+                start_date: "2023-07-01",
                 end_date: "2023-12-31",
                 status: "active",
                 image: "/cause-placeholder.svg",
                 category: "Environment",
-                created_at: "2023-07-01",
-                updated_at: "2023-07-01"
-            }
+                created_at: "2023-07-01T00:00:00Z",
+                updated_at: "2023-07-01T00:00:00Z"
+            };
         }
     } catch (error) {
-        console.error('Failed to fetch cause:', error)
-        throw new Error((error as Error).message || 'Failed to fetch cause')
+        console.error('Failed to fetch cause:', error);
+        throw new Error((error as Error).message || 'Failed to fetch cause');
     }
 }

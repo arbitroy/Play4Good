@@ -10,21 +10,11 @@ import { Label } from "../components/ui/label"
 import { Textarea } from "../components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { CheckCircle2, AlertTriangle } from "lucide-react"
+import { Cause } from '../types/cause';
 
 type CauseFormProps = {
-    cause?: {
-        id: number
-        name: string
-        description: string
-        goal: string
-        current_amount: string
-        start_date: string | null
-        end_date: string | null
-        status: 'active' | 'completed' | 'cancelled' | 'inactive'
-        image: string
-        category: string
-    }
-}
+    cause?: Cause;
+};
 
 export default function CauseForm({ cause }: CauseFormProps) {
     const router = useRouter()

@@ -7,19 +7,8 @@ import CauseCard from './CauseCard'
 import { Button } from "../components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/Alert"
 import { Loader2, PlusCircle, AlertTriangle } from "lucide-react"
+import { Cause } from '../types/cause';
 
-export type Cause = {
-    id: number
-    name: string
-    description: string
-    goal: string
-    current_amount: string
-    start_date: string | null
-    end_date: string | null
-    status: 'active' | 'completed' | 'cancelled' | 'inactive'
-    image: string
-    category: string
-}
 
 const dummyCauses: Cause[] = [
     {
@@ -32,7 +21,9 @@ const dummyCauses: Cause[] = [
         end_date: "2023-12-31",
         status: "active",
         image: "/cause-placeholder.svg",
-        category: "Environment"
+        category: "Environment",
+        created_at: "",
+        updated_at: ""
     },
     {
         id: 2,
@@ -44,7 +35,9 @@ const dummyCauses: Cause[] = [
         end_date: "2024-07-31",
         status: "active",
         image: "/cause-placeholder.svg",
-        category: "Education"
+        category: "Education",
+        created_at: "",
+        updated_at: ""
     },
 ]
 
@@ -85,14 +78,14 @@ export default function CausesPage() {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-4xl font-bold text-blue-900">Discover Causes</h1>
                     <Link href="/causes/new" passHref>
-                        <Button>
-                            <PlusCircle className="w-4 h-4 mr-2" /> Create New Cause
+                        <Button className="w-full text-white">
+                            <PlusCircle className="w-4 h-4 mr-2 co" /> Create New Cause
                         </Button>
                     </Link>
                 </div>
 
                 {error && (
-                    <Alert variant="destructive" className="mb-4">
+                    <Alert variant="destructive" className="mb-4 bg-white text-red-500">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
