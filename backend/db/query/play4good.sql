@@ -1,6 +1,6 @@
 -- name: CreateUser :one
-INSERT INTO users (username, email, password_hash, first_name, last_name, avatar_url)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO users (username, email, password_hash, first_name, last_name, avatar_url, user_role)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetUser :one
@@ -66,8 +66,8 @@ DELETE FROM user_team
 WHERE user_id = $1 AND team_id = $2;
 
 -- name: CreateCause :one
-INSERT INTO causes (name, description, goal, start_date, end_date, status, image, category)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO causes (name, description, goal, start_date, end_date, status, image, category, owner_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetCause :one
