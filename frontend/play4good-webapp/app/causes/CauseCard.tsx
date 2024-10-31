@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../compone
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Pencil, Trash2 } from "lucide-react"
+import Image from 'next/image'
 
 type CauseCardProps = {
     cause: {
@@ -38,10 +39,12 @@ export default function CauseCard({ cause, onDelete }: CauseCardProps) {
             </CardHeader>
             <CardContent>
                 <div className="aspect-video relative mb-4">
-                    <img
+                    <Image
                         src={cause.image || '/cause-placeholder.svg'}
                         alt={cause.name}
                         className="object-cover w-full h-full rounded-md"
+                        height={200}
+                        width={200}
                     />
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{cause.description}</p>

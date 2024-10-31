@@ -8,6 +8,7 @@ import useStorage from '../utils/useStorage';
 import Modal from './Modal';
 import { compressImage } from '../utils/compressImage';
 import { Trophy, Users, Heart, Edit2, Gift } from 'lucide-react';
+import { Suspense } from 'react'
 
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
@@ -123,7 +124,7 @@ const Page = ({ searchParams }: SearchParamProps) => {
             email: loadedUser.email,
             avatar_url: loadedUser.avatar_url,
         });
-    }, []);
+    }, [getItem]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
