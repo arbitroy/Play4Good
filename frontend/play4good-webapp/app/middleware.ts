@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-    const authCookie = request.cookies.get('auth');
+    const token = request.cookies.get('token');
 
-    // Redirect to login if not authenticated
-    if (!authCookie) {
+    // Redirect to login if no token
+    if (!token) {
         return NextResponse.redirect(new URL('/auth', request.url));
     }
 
@@ -13,5 +13,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/', '/about'],
+    matcher: [
+        '/',
+        '/dashboard/:path*',
+        '/user-profile/:path*',
+        // Add other protected routes
+    ],
 };

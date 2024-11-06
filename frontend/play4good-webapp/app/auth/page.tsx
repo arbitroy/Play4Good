@@ -43,55 +43,41 @@ const Page: React.FC = () => {
     setSuccess(null);
 
     try {
-      const response = await fetch(api_url + '/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+        const response = await fetch(`${api_url}/api/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Important for cookies
+            body: JSON.stringify({
+                email: formData.email,
+                password: formData.password,
+            }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Login failed. Please check your credentials and try again.');
-      }
+        if (!response.ok) {
+            throw new Error('Login failed. Please check your credentials.');
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.token) {
-        document.cookie = `token=${data.token};path=/; max-age=3600; SameSite=Strict`;
+        // Store minimal user info in session storage
         sessionStorage.setItem("id", data.id);
         sessionStorage.setItem("username", data.username);
-        sessionStorage.setItem("email", data.email);
-        sessionStorage.setItem("first_name", data.first_name.String);
-        sessionStorage.setItem("last_name", data.last_name.String);
-        sessionStorage.setItem("avatarUrl", data.avatarUrl.String);
 
         setSuccess("Login successful! Redirecting...");
         setIsPopupOpen(true);
-        setFormData({
-          username: "",
-          first_name: "",
-          last_name: "",
-          email: "",
-          password: ""
-        });
 
         setTimeout(() => {
-          router.push('/');
+            router.push('/');
         }, 2000);
-      } else {
-        throw new Error("Token not received");
-      }
     } catch (error) {
-      setError((error as Error).message || "An error occurred during login. Please try again.");
-      setIsPopupOpen(true);
+        setError((error as Error).message);
+        setIsPopupOpen(true);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
