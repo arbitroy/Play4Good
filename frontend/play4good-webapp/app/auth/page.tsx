@@ -48,7 +48,7 @@ const Page: React.FC = () => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'include', // Important for cookies
+            credentials: 'include',
             body: JSON.stringify({
                 email: formData.email,
                 password: formData.password,
@@ -58,12 +58,6 @@ const Page: React.FC = () => {
         if (!response.ok) {
             throw new Error('Login failed. Please check your credentials.');
         }
-
-        const data = await response.json();
-
-        // Store minimal user info in session storage
-        sessionStorage.setItem("id", data.id);
-        sessionStorage.setItem("username", data.username);
 
         setSuccess("Login successful! Redirecting...");
         setIsPopupOpen(true);

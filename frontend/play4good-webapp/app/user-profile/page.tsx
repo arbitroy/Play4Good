@@ -8,8 +8,7 @@ import useStorage from '../utils/useStorage';
 import Modal from './Modal';
 import { compressImage } from '../utils/compressImage';
 import { Trophy, Users, Heart, Edit2, Gift } from 'lucide-react';
-import { Suspense } from 'react'
-
+import { useUser } from '../contexts/UserContext';
 type SearchParamProps = {
     searchParams: Record<string, string> | null | undefined;
 };
@@ -64,19 +63,11 @@ type Donation = {
 };
 
 const Page = ({ searchParams }: SearchParamProps) => {
+    const { user } = useUser();
     const api_url = process.env.NEXT_PUBLIC_API_URL;
     const { getItem, setItem } = useStorage();
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-    const [user, setUser] = useState<User>({
-        id: '',
-        username: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        avatar_url: '',
-    });
-
     const [formData, setFormData] = useState<FormData>({
         username: '',
         first_name: '',
@@ -108,23 +99,16 @@ const Page = ({ searchParams }: SearchParamProps) => {
     const show = searchParams?.show === 'true';
 
     useEffect(() => {
-        const loadedUser = {
-            id: getItem('id') || '',
-            username: getItem('username') || '',
-            firstName: getItem('first_name') || '',
-            lastName: getItem('last_name') || '',
-            email: getItem('email') || '',
-            avatar_url: getItem('avatarUrl') || 'https://bootdey.com/img/Content/avatar/avatar7.png',
-        };
-        setUser(loadedUser);
-        setFormData({
-            username: loadedUser.username,
-            first_name: loadedUser.firstName,
-            last_name: loadedUser.lastName,
-            email: loadedUser.email,
-            avatar_url: loadedUser.avatar_url,
-        });
-    }, [getItem]);
+        if (user) {
+            setFormData({
+                username: user.username,
+                first_name: user.firstName,
+                last_name: user.lastName,
+                email: user.email,
+                avatar_url: user.avatarUrl,
+            });
+        }
+    }, [user]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

@@ -3,6 +3,7 @@ import { Nunito } from "next/font/google";
 import Navbar from "./components/Navbar";
 import './styles/global.css'; // This imports the new global styles
 import Footer from "./components/footer";
+import { UserProvider } from './contexts/UserContext';
 
 const nunito = Nunito({ subsets: ["latin"] });
 
@@ -22,9 +23,11 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
       </head>
       <body className={nunito.className}>
-        <Navbar/>
-        {children}
-        <Footer/>
+        <Navbar />
+        <UserProvider>
+          {children}
+        </UserProvider>
+        <Footer />
       </body>
     </html>
   );
