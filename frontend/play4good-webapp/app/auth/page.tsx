@@ -7,6 +7,7 @@ import { Input } from "../components/ui/Input"
 import { Label } from "../components/ui/label"
 import { Loader2 } from "lucide-react"
 import { FeedbackPopup } from '../components/FeedBackPopup'
+import { useUser } from '../contexts/UserContext';
 
 const SocialIcon: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (props) => (
   <a {...props} className="border border-gray-300 rounded-full inline-flex justify-center items-center m-0 h-10 w-10 hover:bg-gray-200">
@@ -15,6 +16,7 @@ const SocialIcon: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = (pro
 );
 
 const Page: React.FC = () => {
+  const { setUser, loadUser } = useUser();
   const api_url = process.env.NEXT_PUBLIC_API_URL;
   const [formData, setFormData] = useState({
     username: "",
@@ -73,62 +75,55 @@ const Page: React.FC = () => {
     }
 };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData
-        }),
-      });
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setError(null);
+  setSuccess(null);
 
-      if (!response.ok) {
-        throw new Error('Signup failed. Please check your information and try again.');
-      }
+  try {
+    const response = await fetch(`${api_url}/api/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important for receiving cookies
+      body: JSON.stringify(formData),
+    });
 
-      const data = await response.json();
-      const token = data.token;
+    const data = await response.json();
 
-      if (token) {
-        document.cookie = `token=${token}; path=/; max-age=3600; SameSite=Strict`;
-        sessionStorage.setItem("id", data.id);
-        sessionStorage.setItem("username", data.username);
-        sessionStorage.setItem("email", data.email);
-        sessionStorage.setItem("first_name", data.first_name.String);
-        sessionStorage.setItem("last_name", data.last_name.String);
-        sessionStorage.setItem("avatarUrl", data.avatarUrl.String);
-
-        setSuccess("Signup successful! Redirecting...");
-        setIsPopupOpen(true);
-        setFormData({
-          username: "",
-          first_name: "",
-          last_name: "",
-          email: "",
-          password: ""
-        });
-
-        setTimeout(() => {
-          router.push('/');
-        }, 2000);
-      } else {
-        throw new Error("Token not received");
-      }
-    } catch (error) {
-      setError((error as Error).message || "An error occurred during signup. Please try again.");
-      setIsPopupOpen(true);
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(data.error || 'Registration failed');
     }
-  };
+
+    // Update user context with the new user data
+    setUser({
+      id: data.id.toString(),
+      username: data.username,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      email: data.email,
+      avatarUrl: data.avatarUrl || '/default-avatar.png',
+    });
+
+    setSuccess("Registration successful! Redirecting...");
+    setIsPopupOpen(true);
+
+    // Reload user data to ensure everything is up to date
+    await loadUser();
+
+    setTimeout(() => {
+      router.push('/');
+    }, 2000);
+  } catch (error) {
+    setError((error as Error).message);
+    setIsPopupOpen(true);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const [isSignUp, setIsSignUp] = useState(false);
 

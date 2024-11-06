@@ -49,90 +49,91 @@ func (c *Play4GoodController) validateToken(ctx *gin.Context) error {
 }
 
 func (pc *Play4GoodController) SignUpUser(ctx *gin.Context) {
-	// Parse and validate the request body
-	var req struct {
-		Username  string `json:"username" binding:"required,min=3,max=50"`
-		Email     string `json:"email" binding:"required,email"`
-		Password  string `json:"password" binding:"required,min=8"`
-		FirstName string `json:"first_name" binding:"required"`
-		LastName  string `json:"last_name" binding:"required"`
-		AvatarURL string `json:"avatar_url" binding:"omitempty,url"`
-	}
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    // Parse and validate the request body
+    var req struct {
+        Username  string `json:"username" binding:"required,min=3,max=50"`
+        Email     string `json:"email" binding:"required,email"`
+        Password  string `json:"password" binding:"required,min=8"`
+        FirstName string `json:"first_name" binding:"required"`
+        LastName  string `json:"last_name" binding:"required"`
+        AvatarURL string `json:"avatar_url" binding:"omitempty,url"`
+    }
+    if err := ctx.ShouldBindJSON(&req); err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	// Check if the email already exists in the database
-	_, err := pc.db.GetUserByEmail(pc.ctx, req.Email)
-	if err == nil {
-		ctx.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
-		return
-	}
+    // Check if the email already exists
+    _, err := pc.db.GetUserByEmail(pc.ctx, req.Email)
+    if err == nil {
+        ctx.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+        return
+    }
 
-	// Hash the user's password
-	hashedPassword, err := util.HashPassword(req.Password)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
-		return
-	}
+    // Hash the password
+    hashedPassword, err := util.HashPassword(req.Password)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not process password"})
+        return
+    }
 
-	// Create a new user in the database
-	newUser := db.CreateUserParams{
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: hashedPassword, // Note: You should hash this password before storing
-		FirstName:    sql.NullString{String: req.FirstName, Valid: req.FirstName != ""},
-		LastName:     sql.NullString{String: req.LastName, Valid: req.LastName != ""},
-		AvatarUrl:    sql.NullString{String: req.AvatarURL, Valid: req.AvatarURL != ""},
-	}
+    // Create the user
+    newUser := db.CreateUserParams{
+        Username:     req.Username,
+        Email:        req.Email,
+        PasswordHash: hashedPassword,
+        FirstName:    sql.NullString{String: req.FirstName, Valid: true},
+        LastName:     sql.NullString{String: req.LastName, Valid: true},
+        AvatarUrl:    sql.NullString{String: req.AvatarURL, Valid: req.AvatarURL != ""},
+        UserRole:     sql.NullString{String: "user", Valid: true}, // Default role
+    }
 
-	user, err := pc.db.CreateUser(pc.ctx, newUser)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
-		return
-	}
+    user, err := pc.db.CreateUser(pc.ctx, newUser)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+        return
+    }
 
-	// Generate the JWT token
-	tokenString, err := util.GenerateJWT(int(user.ID))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-		return
-	}
+    // Generate JWT token
+    tokenString, err := util.GenerateJWT(int(user.ID))
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+        return
+    }
 
-	// Create a new token record in the database
-	expiry := time.Now().Add(24 * time.Hour) // 24-hour expiry
-	_, err = pc.db.CreateUserToken(pc.ctx, db.CreateUserTokenParams{
-		UserID: sql.NullInt32{Int32: user.ID, Valid: true},
-		Token:  tokenString,
-		Expiry: expiry,
-	})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
-		return
-	}
+    // Create token record in database
+    expiry := time.Now().Add(24 * time.Hour)
+    _, err = pc.db.CreateUserToken(pc.ctx, db.CreateUserTokenParams{
+        UserID: sql.NullInt32{Int32: user.ID, Valid: true},
+        Token:  tokenString,
+        Expiry: expiry,
+    })
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
+        return
+    }
 
-	// Set cookie
-	ctx.SetCookie(
-		"token",
-		tokenString,
-		3600, // 1 hour
-		"/",
-		"",
-		false, // Set to true in production for HTTPS
-		true,  // HTTP only
-	)
+    // Set HTTP-only cookie
+    ctx.SetCookie(
+        "token",
+        tokenString,
+        3600*24, // 24 hours
+        "/",
+        "",
+        false, // Set to true in production for HTTPS
+        true,  // HTTP only
+    )
 
-	// Return the created user (excluding sensitive information like password) and the JWT token
-	ctx.JSON(http.StatusCreated, gin.H{
-		"id":         user.ID,
-		"first_name": user.FirstName,
-		"username":   user.Username,
-		"last_name":  user.LastName,
-		"email":      user.Email,
-		"avatarUrl":  user.AvatarUrl,
-		"token":      tokenString,
-	})
+    // Return user data (excluding sensitive information)
+    ctx.JSON(http.StatusCreated, gin.H{
+        "id":         user.ID,
+        "username":   user.Username,
+        "email":      user.Email,
+        "first_name": user.FirstName.String,
+        "last_name":  user.LastName.String,
+        "avatarUrl":  user.AvatarUrl.String,
+        "user_role":  user.UserRole.String,
+    })
 }
 
 func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
