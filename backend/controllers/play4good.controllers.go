@@ -210,6 +210,23 @@ func (pc *Play4GoodController) LoginUser(ctx *gin.Context) {
 	})
 }
 
+
+func (c *Play4GoodController) GetCurrentUser(ctx *gin.Context) {
+    userID, exists := ctx.Get("userID")
+    if !exists {
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+        return
+    }
+
+    user, err := c.db.GetUser(ctx, int32(userID.(int)))
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user data"})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, user)
+}
+
 func (pc *Play4GoodController) LogoutUser(ctx *gin.Context) {
     // Clear the cookie
     ctx.SetCookie(

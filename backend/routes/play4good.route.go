@@ -18,6 +18,7 @@ func (pr *Play4GoodRoutes) SetupRoutes(rg *gin.RouterGroup) {
 
 	router.POST("/signup", pr.play4goodController.SignUpUser)
 	router.POST("/login", pr.play4goodController.LoginUser)
+	router.GET("/user/me", pr.play4goodController.GetCurrentUser)
 	// User routes
 	router.POST("/users", pr.play4goodController.CreateUser)
 	router.GET("/users/id/:id", pr.play4goodController.GetUser)
